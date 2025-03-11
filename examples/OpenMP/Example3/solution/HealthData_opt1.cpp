@@ -7,6 +7,27 @@
 constexpr int NumPatients = 1000000;  // Number of patients
 constexpr int NumFeatures = 10;       // Number of health features
 
+// Simple timer class for measuring execution time
+class Timer {
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+    std::string function_name;
+
+public:
+    // Constructor starts the timer
+    Timer(const std::string& name) : function_name(name) {
+        start_time = std::chrono::high_resolution_clock::now();
+        std::cout << "Starting " << function_name << "...\n";
+    }
+
+    // Destructor automatically stops the timer and prints elapsed time
+    ~Timer() {
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+        std::cout << function_name << " completed in " << duration.count() << " ms\n";
+    }
+};
+
 // Function to generate synthetic health data
 void generate_data(std::vector<std::vector<double>>& data) {
     std::random_device rd;
@@ -68,21 +89,32 @@ void compute_correlation(const std::vector<std::vector<double>>& data, const std
 
 // Main function
 int main() {
-    std::cout << "Generating synthetic health data...\n";
-    std::vector<std::vector<double>> data(NumPatients, std::vector<double>(NumFeatures));
-    generate_data(data);
 
+    std::cout << "Analyzing health data for " << NumPatients << " patients with " << NumFeatures << " features\n";
+    
+    std::vector<std::vector<double>> data(NumPatients, std::vector<double>(NumFeatures));
     std::vector<double> mean(NumFeatures, 0.0), variance(NumFeatures, 0.0);
     std::vector<std::vector<double>> correlation(NumFeatures, std::vector<double>(NumFeatures, 0.0));
-
-    std::cout << "Computing mean of each feature...\n";
-    compute_mean(data, mean);
-
-    std::cout << "Computing variance of each feature...\n";
-    compute_variance(data, mean, variance);
-
-    std::cout << "Computing correlation matrix...\n";
-    compute_correlation(data, mean, variance, correlation);
+    
+    {
+        Timer timer("Generate Data");
+        generate_data(data);
+    }
+    
+    {
+        Timer timer("Compute Mean");
+        compute_mean(data, mean);
+    }
+    
+    {
+        Timer timer("Compute Variance");
+        compute_variance(data, mean, variance);
+    }
+    
+    {
+        Timer timer("Compute Correlation");
+        compute_correlation(data, mean, variance, correlation);
+    }
 
     std::cout << "\nHealth Feature Summary:\n";
     for (int j = 0; j < NumFeatures; j++) {
