@@ -89,44 +89,48 @@ void compute_correlation(const std::vector<std::vector<double>>& data, const std
 
 // Main function
 int main() {
-
     std::cout << "Analyzing health data for " << NumPatients << " patients with " << NumFeatures << " features\n";
     
-    std::vector<std::vector<double>> data(NumPatients, std::vector<double>(NumFeatures));
-    std::vector<double> mean(NumFeatures, 0.0), variance(NumFeatures, 0.0);
-    std::vector<std::vector<double>> correlation(NumFeatures, std::vector<double>(NumFeatures, 0.0));
-    
     {
-        Timer timer("Generate Data");
-        generate_data(data);
-    }
-    
-    {
-        Timer timer("Compute Mean");
-        compute_mean(data, mean);
-    }
-    
-    {
-        Timer timer("Compute Variance");
-        compute_variance(data, mean, variance);
-    }
-    
-    {
-        Timer timer("Compute Correlation");
-        compute_correlation(data, mean, variance, correlation);
-    }
+        // Create timer for total runtime
+        Timer timer("Total Runtime");
 
-    std::cout << "\nHealth Feature Summary:\n";
-    for (int j = 0; j < NumFeatures; j++) {
-        std::cout << "Feature " << j << " - Mean: " << mean[j] << ", Variance: " << variance[j] << "\n";
-    }
-
-    std::cout << "\nCorrelation Matrix (first 3x3 section for brevity):\n";
-    for (int j1 = 0; j1 < 3; j1++) {
-        for (int j2 = 0; j2 < 3; j2++) {
-            std::cout << correlation[j1][j2] << " ";
+        std::vector<std::vector<double>> data(NumPatients, std::vector<double>(NumFeatures));
+        std::vector<double> mean(NumFeatures, 0.0), variance(NumFeatures, 0.0);
+        std::vector<std::vector<double>> correlation(NumFeatures, std::vector<double>(NumFeatures, 0.0));
+        
+        {
+            Timer timer("Generate Data");
+            generate_data(data);
         }
-        std::cout << "\n";
+        
+        {
+            Timer timer("Compute Mean");
+            compute_mean(data, mean);
+        }
+        
+        {
+            Timer timer("Compute Variance");
+            compute_variance(data, mean, variance);
+        }
+        
+        {
+            Timer timer("Compute Correlation");
+            compute_correlation(data, mean, variance, correlation);
+        }
+
+        std::cout << "\nHealth Feature Summary:\n";
+        for (int j = 0; j < NumFeatures; j++) {
+            std::cout << "Feature " << j << " - Mean: " << mean[j] << ", Variance: " << variance[j] << "\n";
+        }
+
+        std::cout << "\nCorrelation Matrix (first 3x3 section for brevity):\n";
+        for (int j1 = 0; j1 < 3; j1++) {
+            for (int j2 = 0; j2 < 3; j2++) {
+                std::cout << correlation[j1][j2] << " ";
+            }
+            std::cout << "\n";
+        }
     }
 
     return 0;
