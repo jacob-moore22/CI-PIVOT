@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
 		a[i] = 1.0;
 		b[i] = 2.0;
 	}
-
+	// Iterate to get average runtime
 	for (int k = 0; k < NTIMES; k++){
 		cpu_timer_start(&tstart);
 	    
@@ -31,3 +31,4 @@ int main(int argc, char *argv[]){
 	}
 	printf("Average runtime is %lf msecs\n", time_sum/NTIMES);
 }
+
