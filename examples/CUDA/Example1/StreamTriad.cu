@@ -1,7 +1,5 @@
-#include <cstdio>
-#include "timer.h"
-
 // CUDA kernel version of Stream Triad
+// __global__ indicates that this is a kernel function that will be executed on the device
 __global__ void StreamTriad(
                 const int n,
                 const double scalar,
@@ -9,11 +7,13 @@ __global__ void StreamTriad(
                 const double *b,
                       double *c)
 {
+    // Get the global thread index to determine which element to process
     int i = blockIdx.x*blockDim.x+threadIdx.x;
 
-    // Protect from going out-of-bounds
+    // Protect from going out-of-bounds by checking if i is greater than or equal to n
     if (i >= n) return;
 
+    // Perform the triad operation: c[i] = a[i] + scalar*b[i]
     c[i] = a[i] + scalar*b[i];
 }
 
@@ -40,6 +40,8 @@ int main(int argc, char *argv[]){
     }
 
     // allocate device memory. suffix of _d indicates a device pointer
+    // cudaMalloc allocates memory on the device
+    // cudaMalloc(pointer to device memory, size of memory to allocate)
     double *a_d, *b_d, *c_d;
     cudaMalloc(&a_d, stream_array_size*sizeof(double));
     cudaMalloc(&b_d, stream_array_size*sizeof(double));
@@ -51,16 +53,21 @@ int main(int argc, char *argv[]){
 
     for (int k = 0; k < NTIMES; k++){
         cpu_timer_start(&ttotal);
-        // copying array data from host to device
+        // copying array data from host to device using cudaMemcpy
+        // cudaMemcpy(destination, source, size, direction)
         cudaMemcpy(a_d, a, stream_array_size*sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(b_d, b, stream_array_size*sizeof(double), cudaMemcpyHostToDevice);
+        
         // cuda memcopy to device returns after buffer available, so synchronize to
         // get accurate timing for kernel only
         cudaDeviceSynchronize();
 
         cpu_timer_start(&tkernel);
+        
         // launch stream triad kernel
+        // <<<gridsize, blocksize>>> is the number of blocks and threads per block
         StreamTriad<<<gridsize, blocksize>>>(stream_array_size, scalar, a_d, b_d, c_d);
+        
         // need to force completion to get timing
         cudaDeviceSynchronize();
         tkernel_sum += cpu_timer_stop(tkernel);
@@ -79,10 +86,12 @@ int main(int argc, char *argv[]){
     printf("Average runtime is %lf msecs data transfer is %lf msecs\n",
            tkernel_sum/NTIMES, (ttotal_sum - tkernel_sum)/NTIMES);
 
+    // free device memory
     cudaFree(a_d);
     cudaFree(b_d);
     cudaFree(c_d);
 
+    // free host memory
     free(a);
     free(b);
     free(c);
