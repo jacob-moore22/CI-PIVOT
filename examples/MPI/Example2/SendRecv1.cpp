@@ -35,9 +35,16 @@ int main(int argc, char **argv)
     int partner_rank = (rank/2)*2 + (rank+1)%2;
     MPI_Comm comm = MPI_COMM_WORLD;
 
-    // Receive and send messages, note, MPI_Recv and MPI_Send are blocking
-    MPI_Recv(xrecv, count, MPI_DOUBLE, partner_rank, tag, comm, MPI_STATUS_IGNORE);
-    MPI_Send(xsend, count, MPI_DOUBLE, partner_rank, tag, comm);
+    // Fix deadlock by having even ranks send first, odd ranks receive first
+    if (rank % 2 == 0) {
+        // Even ranks: Send first, then receive
+        MPI_Send(xsend, count, MPI_DOUBLE, partner_rank, tag, comm);
+        MPI_Recv(xrecv, count, MPI_DOUBLE, partner_rank, tag, comm, MPI_STATUS_IGNORE);
+    } else {
+        // Odd ranks: Receive first, then send
+        MPI_Recv(xrecv, count, MPI_DOUBLE, partner_rank, tag, comm, MPI_STATUS_IGNORE);
+        MPI_Send(xsend, count, MPI_DOUBLE, partner_rank, tag, comm);
+    }
 
     if (rank == 0) printf("SendRecv successfully completed\n");
 
