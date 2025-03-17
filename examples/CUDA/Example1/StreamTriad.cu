@@ -1,3 +1,6 @@
+#include <cstdio>
+#include "timer.h"
+
 // CUDA kernel version of Stream Triad
 __global__ void StreamTriad(
                 const int n,
