@@ -1,3 +1,5 @@
+// g++ -fopenmp -foffload=nvptx-none stream_triad.cpp timer.c -o stream_triad_gpu
+
 #include <stdio.h>
 #include <omp.h>
 #include "timer.h"
