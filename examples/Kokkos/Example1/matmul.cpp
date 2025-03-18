@@ -2,6 +2,7 @@
 //   -I${KOKKOS_PATH}/include -L${KOKKOS_PATH}/lib -lkokkos -DKOKKOS_ENABLE_CUDA
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 #include <iostream>
 #include <chrono>
 #include <iomanip>

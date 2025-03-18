@@ -1,14 +1,70 @@
-#!/bin/bash -e
+#!/bin/bash
 
-kokkos_build_type="${1}"
-debug="${2}"
+# Function to display usage
+usage() {
+    echo "Usage: $0 [-t build_type] [-d] [-p install_prefix]"
+    echo "build_type options: serial, openmp, pthreads, cuda, hip"
+    echo "  -t    Specify build type (required)"
+    echo "  -d    Enable debug build (optional)"
+    echo "  -p    Installation prefix path (optional)"
+    exit 1
+}
 
-# If all arguments are valid, you can use them in your script as needed
-echo "Kokkos Build Type: $kokkos_build_type"
+# Parse command line arguments
+while getopts "t:dp:" opt; do
+    case ${opt} in
+        t )
+            build_type=$OPTARG
+            ;;
+        d )
+            debug=true
+            ;;
+        p )
+            INSTALL_PREFIX=$OPTARG
+            ;;
+        \? )
+            usage
+            ;;
+    esac
+done
 
-echo "Removing stale Kokkos build and installation directory since these are machine dependant and don't take long to build/install"
-rm -rf ${KOKKOS_BUILD_DIR} ${KOKKOS_INSTALL_DIR}
-mkdir -p ${KOKKOS_BUILD_DIR} 
+# Validate build type
+if [ -z "$build_type" ]; then
+    echo "Error: Build type (-t) is required"
+    usage
+fi
+
+# Validate build type value
+valid_types=("serial" "openmp" "pthreads" "cuda" "hip")
+if [[ ! " ${valid_types[@]} " =~ " ${build_type} " ]]; then
+    echo "Error: Invalid build type. Must be one of: ${valid_types[*]}"
+    usage
+fi
+
+# Exit on error
+#set -e
+
+# Get the directory where the script is called from
+CURRENT_DIR=$(pwd)
+INSTALL_PREFIX="${INSTALL_PREFIX:-${CURRENT_DIR}/install}"
+INSTALL_DIR="${CURRENT_DIR}/build_tmp"
+BUILD_DIR="${INSTALL_DIR}/build"
+KOKKOS_SOURCE_DIR="${INSTALL_DIR}/kokkos"
+KOKKOS_BUILD_DIR="${BUILD_DIR}"
+KOKKOS_INSTALL_DIR="${INSTALL_PREFIX}"
+
+# Create directories
+mkdir -p $INSTALL_DIR
+mkdir -p $BUILD_DIR
+mkdir -p $INSTALL_PREFIX
+cd $INSTALL_DIR
+
+echo "Cloning Kokkos repository..."
+git clone https://github.com/kokkos/kokkos.git
+cd kokkos
+
+echo "Creating build directory..."
+cd $BUILD_DIR
 
 # Kokkos flags for Cuda
 CUDA_ADDITIONS=(
@@ -47,19 +103,19 @@ cmake_options=(
     -D BUILD_TESTING=OFF
 )
 
-if [ "$kokkos_build_type" = "openmp" ]; then
+if [ "$build_type" = "openmp" ]; then
     cmake_options+=(
         ${OPENMP_ADDITIONS[@]}
     )
-elif [ "$kokkos_build_type" = "pthreads" ]; then
+elif [ "$build_type" = "pthreads" ]; then
     cmake_options+=(
         ${PTHREADS_ADDITIONS[@]}
     )
-elif [ "$kokkos_build_type" = "cuda" ]; then
+elif [ "$build_type" = "cuda" ]; then
     cmake_options+=(
         ${CUDA_ADDITIONS[@]}
     )
-elif [ "$kokkos_build_type" = "hip" ]; then
+elif [ "$build_type" = "hip" ]; then
     cmake_options+=(
         ${HIP_ADDITIONS[@]}
     )
@@ -72,18 +128,30 @@ if [ "$debug" = "true" ]; then
     )
 fi
 
-# Print CMake options for reference
-echo "CMake Options: ${cmake_options[@]}"
-
+echo "Configuring Kokkos..."
 # Configure kokkos
 cmake "${cmake_options[@]}" -B "${KOKKOS_BUILD_DIR}" -S "${KOKKOS_SOURCE_DIR}"
 
-# Build kokkos
-echo "Building kokkos..."
-make -C ${KOKKOS_BUILD_DIR} -j${FIERRO_BUILD_CORES}
+echo "Building Kokkos..."
+make -j$(nproc)
 
-# Install kokkos
-echo "Installing kokkos..."
-make -C ${KOKKOS_BUILD_DIR} install
+echo "Installing Kokkos..."
+make install
 
-echo "kokkos installation complete."
+echo "Cleaning up..."
+cd $CURRENT_DIR
+rm -rf $INSTALL_DIR
+
+echo "Setting up environment..."
+# Create a setup script instead of modifying .bashrc
+cat > ${INSTALL_PREFIX}/setup_env.sh << EOF
+#!/bin/bash
+export CMAKE_PREFIX_PATH=\${CMAKE_PREFIX_PATH}:${INSTALL_PREFIX}
+export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${INSTALL_PREFIX}/lib64
+EOF
+chmod +x ${INSTALL_PREFIX}/setup_env.sh
+
+echo "Kokkos installation completed!"
+echo "Installation location: ${INSTALL_PREFIX}"
+echo "To set up the environment variables, run:"
+echo "source ${INSTALL_PREFIX}/setup_env.sh"
