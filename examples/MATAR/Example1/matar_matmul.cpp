@@ -1,20 +1,19 @@
 #include <stdio.h>
 #include <iostream>
+#include <Kokkos_Core.hpp>
 #include <matar.h>
 
-using namespace mtr; // matar namespace
+// Required for MATAR data structures
+using namespace mtr; 
 
-
-#define MATRIX_SIZE 1024 //
+#define MATRIX_SIZE 1024
 
 // main
 int main(int argc, char* argv[])
 {
-    MATAR_KOKKOS_INIT
+    Kokkos::initialize(argc, argv);
     { // kokkos scope
     printf("Starting MATAR Matrix Multiplication test \n");
-
-
 
     // Create arrays on the device, where the device is either the CPU or GPU depending on how it is compiled
     CArrayKokkos<int> A(MATRIX_SIZE, MATRIX_SIZE);
@@ -34,9 +33,8 @@ int main(int argc, char* argv[])
         C(i,j) += A(i,k) * B(k,j);
     });
 
-  
     } // end kokkos scope
-    MATAR_KOKKOS_FINALIZE
+    Kokkos::finalize();
 
     return 0;
 }
