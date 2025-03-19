@@ -47,7 +47,7 @@ MATAR_INSTALL_SCRIPT="../matar-install.sh"
 BUILD_DIR="${SCRIPT_DIR}/build_${build_type}"
 INSTALL_DIR="${SCRIPT_DIR}/install"
 
-# Create build directory
+# Create build and install directories
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${INSTALL_DIR}"
 
@@ -63,27 +63,15 @@ fi
 # Set up environment variables for MATAR installation
 export KOKKOS_INSTALL_DIR="${INSTALL_DIR}/kokkos"
 export MATAR_INSTALL_DIR="${INSTALL_DIR}/matar"
-# Fix the MATAR source directory path - assuming MATAR is in the root of the repository
-export MATAR_SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/MATAR"
-export MATAR_BUILD_DIR="${BUILD_DIR}/matar"
-export MATAR_BUILD_CORES=$(nproc)
-
-# Add verification
-if [ ! -d "${MATAR_SOURCE_DIR}" ]; then
-    echo "Error: MATAR source directory not found at ${MATAR_SOURCE_DIR}"
-    echo "Please ensure MATAR is properly cloned in the repository"
-    exit 1
-fi
-
-if [ ! -f "${MATAR_SOURCE_DIR}/CMakeLists.txt" ]; then
-    echo "Error: CMakeLists.txt not found in MATAR source directory"
-    echo "Expected location: ${MATAR_SOURCE_DIR}/CMakeLists.txt"
-    exit 1
-fi
 
 # Install MATAR
 echo "Installing MATAR..."
-bash "${MATAR_INSTALL_SCRIPT}" "${build_type}" "${debug}"
+cd "${SCRIPT_DIR}"
+if [ "$debug" = "true" ]; then
+    bash "${MATAR_INSTALL_SCRIPT}" "${build_type}" "true"
+else
+    bash "${MATAR_INSTALL_SCRIPT}" "${build_type}"
+fi
 
 # Source the environment setup for both Kokkos and MATAR
 source "${INSTALL_DIR}/kokkos/setup_env.sh"
@@ -97,13 +85,13 @@ project(MatarExample1 CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set CMake module path to find MATAR
+# Set CMake module path to find MATAR and Kokkos
 list(APPEND CMAKE_PREFIX_PATH "${INSTALL_DIR}/matar")
 list(APPEND CMAKE_PREFIX_PATH "${INSTALL_DIR}/kokkos")
 
 # Find packages
 find_package(Kokkos REQUIRED)
-find_package(MATAR REQUIRED PATHS "${INSTALL_DIR}/matar")
+find_package(MATAR REQUIRED PATHS "${INSTALL_DIR}/matar" NO_DEFAULT_PATH)
 
 # Create the executable
 add_executable(matar_matmul matar_matmul.cpp)
@@ -123,9 +111,10 @@ EOF
 echo "Building matar_matmul example..."
 cd "${BUILD_DIR}"
 
-# Configure with CMake - explicitly set both prefix paths
+# Configure with CMake
 cmake -DCMAKE_PREFIX_PATH="${INSTALL_DIR}/kokkos;${INSTALL_DIR}/matar" \
       -DMATAR_DIR="${INSTALL_DIR}/matar" \
+      -DCMAKE_MODULE_PATH="${INSTALL_DIR}/matar/cmake" \
       ..
 
 # Build
