@@ -1,0 +1,11 @@
+
+# For using callgrind when you cant use kcachegrind
+valgrind --tool=callgrind --callgrind-out-file=callgrind.out ./yourprogram
+callgrind_annotate callgrind.out
+
+
+# To run with Likwid, use the followg command
+likwid-perfctr -C 0 -g MEM1 ./stream_triad
+# MEM1 can be replaced with and the the groups defined with
+likwid-perfctr -a
+# For more information, check: https://github.com/RRZE-HPC/likwid

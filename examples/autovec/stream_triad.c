@@ -1,3 +1,7 @@
+// To run with Likwid, use the followg command
+// likwid-perfctr -C 0 -g MEM1 ./stream_triad
+
+
 #include <stdio.h>
 #include "timer.h"
 

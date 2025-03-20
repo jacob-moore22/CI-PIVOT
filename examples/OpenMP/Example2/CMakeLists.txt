@@ -57,21 +57,6 @@ set_target_properties(vecadd PROPERTIES COMPILE_FLAGS ${CMAKE_NOVEC_FLAGS})
 set_target_properties(vecadd PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(vecadd PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-add_executable(vecadd_opt1 vecadd_opt1.c timer.c timer.h)
-set_target_properties(vecadd_opt1 PROPERTIES COMPILE_FLAGS ${CMAKE_NOVEC_FLAGS})
-set_target_properties(vecadd_opt1 PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(vecadd_opt1 PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
-
-add_executable(vecadd_opt2 vecadd_opt2.c timer.c timer.h)
-set_target_properties(vecadd_opt2 PROPERTIES COMPILE_FLAGS ${CMAKE_NOVEC_FLAGS})
-set_target_properties(vecadd_opt2 PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(vecadd_opt2 PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
-
-add_executable(vecadd_opt3 vecadd_opt3.c timer.c timer.h)
-set_target_properties(vecadd_opt3 PROPERTIES COMPILE_FLAGS ${CMAKE_NOVEC_FLAGS})
-set_target_properties(vecadd_opt3 PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(vecadd_opt3 PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
-
 # Cleanup
 add_custom_target(distclean COMMAND rm -rf CMakeCache.txt CMakeFiles
                   Makefile cmake_install.cmake vecadd.dSYM ipo_out.optrpt)

@@ -60,3 +60,10 @@ mkdir -p ~/.likwid/groups
 cp -r groups/* ~/.likwid/groups/
 
 echo "LIKWID installation completed!"
+
+
+echo "Installing Valgrind "
+sudo snap install valgrind --classic
+
+echo "Installing kcachegrind"
+sudo snap install kcachegrind
