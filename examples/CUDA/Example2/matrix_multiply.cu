@@ -1,5 +1,5 @@
 // nvcc -o matrix_multiply matrix_multiply.cu
-./matrix_multiply
+// ./matrix_multiply
 
 #include <stdio.h>
 #include <stdlib.h>
