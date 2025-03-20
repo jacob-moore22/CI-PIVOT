@@ -1,7 +1,7 @@
 #!/bin/bash
 # RUN USING: sudo ./install_likwid.sh
 # Exit on error
-set -e
+# set -e
 
 echo "Installing LIKWID prerequisites..."
 # Check if running as root/sudo
