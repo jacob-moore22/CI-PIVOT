@@ -2,7 +2,7 @@
 #include "timer.h"
 
 // large enough to force into main memory
-#define ARRAY_SIZE 80000000
+#define ARRAY_SIZE 8000000
 static double a[ARRAY_SIZE], b[ARRAY_SIZE], c[ARRAY_SIZE];
 
 void vector_add(double *c, double *a, double *b, int n);

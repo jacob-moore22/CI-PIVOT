@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -90,7 +91,9 @@ void compute_correlation(const std::vector<std::vector<double>>& data, const std
 // Main function
 int main() {
     std::cout << "Analyzing health data for " << NumPatients << " patients with " << NumFeatures << " features\n";
-    
+    nthreads = omp_get_num_threads();
+
+    std::cout << "Number of threads: " << nthreads << std::endl;
     {
         // Create timer for total runtime
         Timer timer("Total Runtime");
@@ -99,6 +102,8 @@ int main() {
         std::vector<double> mean(NumFeatures, 0.0), variance(NumFeatures, 0.0);
         std::vector<std::vector<double>> correlation(NumFeatures, std::vector<double>(NumFeatures, 0.0));
         
+
+
         {
             Timer timer("Generate Data");
             generate_data(data);

@@ -67,3 +67,6 @@ sudo snap install valgrind --classic
 
 echo "Installing kcachegrind"
 sudo snap install kcachegrind
+
+echo "Loading the MPI module distributed with INTEL-ONEAPI"
+module load intel-oneapi/mpi/latest

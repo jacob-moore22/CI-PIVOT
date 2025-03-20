@@ -30,6 +30,9 @@ cmake .
 make
 make test
 
+Or, call it directly using mpiexec: 
+mpiexec -n 1  ./MinWorkExampleMPI
+
 
 To cleanup after the run, use the following commands
 make clean

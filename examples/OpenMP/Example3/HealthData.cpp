@@ -1,8 +1,10 @@
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <random>
 #include <omp.h>
+
 
 constexpr int NumPatients = 1000000;  // Number of patients
 constexpr int NumFeatures = 10;       // Number of health features

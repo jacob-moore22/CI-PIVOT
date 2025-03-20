@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 11)  # Changed to C++ standard since we're using .cpp
 
 # Set optimization flags for various compilers
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") # using Clang
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstrict-aliasing -march=native -mtune=native")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Rpass-analysis=loop-vectorize")
@@ -55,6 +56,6 @@ if(OpenMP_CXX_FOUND)
     set_target_properties(HealthData PROPERTIES LINK_FLAGS "${OpenMP_CXX_FLAGS}")
 endif()
 
-# Cleanup
+# Cleanup using: cmake --build . --target distclean
 add_custom_target(distclean COMMAND rm -rf CMakeCache.txt CMakeFiles
                   Makefile cmake_install.cmake HealthData.dSYM ipo_out.optrpt)
