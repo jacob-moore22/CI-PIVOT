@@ -1,7 +1,7 @@
 #!/bin/bash
-
+# RUN USING: sudo ./install_likwid.sh
 # Exit on error
-# set -e
+set -e
 
 echo "Installing LIKWID prerequisites..."
 # Check if running as root/sudo
@@ -37,8 +37,26 @@ make
 echo "Installing LIKWID..."
 make install
 
-# echo "Cleaning up..."
-# cd ../..
-# rm -rf $INSTALL_DIR
+# Create necessary directories for performance groups
+echo "Setting up performance group directories..."
+mkdir -p /usr/local/share/likwid/perfgroups
+mkdir -p /usr/local/share/likwid/perfgroups/zen3
+mkdir -p /usr/local/share/likwid/perfgroups/zen4
+mkdir -p /usr/local/share/likwid/perfgroups/zen5
+
+# Copy performance group files
+echo "Copying performance group files..."
+cp -r groups/* /usr/local/share/likwid/perfgroups/
+
+# Set proper permissions
+chmod -R 755 /usr/local/share/likwid/perfgroups
+
+echo "Enabling machine-specific registers (MSR) for LIKWID..."
+modprobe msr
+
+# Create user-specific LIKWID directory
+echo "Setting up user-specific LIKWID directory..."
+mkdir -p ~/.likwid/groups
+cp -r groups/* ~/.likwid/groups/
 
 echo "LIKWID installation completed!"
