@@ -1,4 +1,4 @@
-TARGET:= foo
+TARGET:= StreamTriadCuda
 
 CC_SRCS:= timer.cc
 CU_SRCS:= StreamTriad.cu
