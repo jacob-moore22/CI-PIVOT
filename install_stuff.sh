@@ -70,4 +70,7 @@ echo "Installing kcachegrind"
 sudo snap install kcachegrind
 
 echo "Loading the MPI module distributed with INTEL-ONEAPI"
+# The module command is a shell function and not available to scripts by default
+# Source the module initialization script first
+source /etc/profile.d/modules.sh
 module load intel-oneapi/mpi/latest
