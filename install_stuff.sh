@@ -1,9 +1,6 @@
 #!/bin/bash
 # RUN USING: sudo ./install_likwid.sh
-# Exit on error
-# set -e
 
-source ~/.bashrc
 
 echo "Installing LIKWID prerequisites..."
 # Check if running as root/sudo
@@ -70,8 +67,3 @@ sudo snap install valgrind --classic
 echo "Installing kcachegrind"
 sudo snap install kcachegrind
 
-echo "Loading the MPI module distributed with INTEL-ONEAPI"
-# The module command is a shell function and not available to scripts by default
-# Source the module initialization script first
-source /etc/profile.d/modules.sh
-module load intel-oneapi/mpi/latest
