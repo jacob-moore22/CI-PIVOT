@@ -3,6 +3,7 @@
 # Exit on error
 # set -e
 
+
 echo "Installing LIKWID prerequisites..."
 # Check if running as root/sudo
 if [ "$EUID" -ne 0 ]; then
