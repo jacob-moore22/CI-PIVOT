@@ -3,6 +3,7 @@
 # Exit on error
 # set -e
 
+source ~/.bashrc
 
 echo "Installing LIKWID prerequisites..."
 # Check if running as root/sudo
