@@ -2,17 +2,23 @@
 #include <vector>
 #include <mpi.h>
 #include <cmath>
+#include <stdio.h>
+#include <stdlib.h>
+
 
 /**
  * Parallel vector-matrix multiplication using MPI
  * Multiplies an N-element vector by an N×N matrix
  */
 int main(int argc, char** argv) {
+    // Initialize MPI and get rank and size
     MPI_Init(&argc, &argv);
-
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // Start total program timer
+    double total_start = MPI_Wtime();
 
     // Problem size
     const int N = 1000; // Adjust as needed
@@ -22,6 +28,9 @@ int main(int argc, char** argv) {
     int local_start_row = rank * rows_per_proc;
     int local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
     int local_rows = local_end_row - local_start_row;
+
+    // Start initialization timer
+    double init_start = MPI_Wtime();
 
     // Allocate memory for the matrix, vector, and result
     std::vector<double> matrix;
@@ -46,6 +55,14 @@ int main(int argc, char** argv) {
         std::cout << "Matrix and vector initialized." << std::endl;
     }
 
+    double init_time = MPI_Wtime() - init_start;
+    if (rank == 0) {
+        std::cout << "Initialization time: " << init_time << " seconds" << std::endl;
+    }
+
+    // Start distribution timer
+    double dist_start = MPI_Wtime();
+
     // Broadcast the vector to all processes
     MPI_Bcast(vector.data(), N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
@@ -60,7 +77,7 @@ int main(int argc, char** argv) {
             int dest_rows = (dest == size - 1) ? (N - dest_start_row) : rows_per_proc;
             MPI_Send(&matrix[dest_start_row * N], dest_rows * N, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);
         }
-        
+
         // Copy local part for rank 0
         for (int i = 0; i < local_rows * N; i++) {
             local_matrix[i] = matrix[i];
@@ -71,6 +88,14 @@ int main(int argc, char** argv) {
         MPI_Recv(local_matrix.data(), local_rows * N, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
+    double dist_time = MPI_Wtime() - dist_start;
+    if (rank == 0) {
+        std::cout << "Distribution time: " << dist_time << " seconds" << std::endl;
+    }
+
+    // Start computation timer
+    double comp_start = MPI_Wtime();
+
     // Perform local matrix-vector multiplication
     for (int i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
@@ -78,6 +103,14 @@ int main(int argc, char** argv) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
     }
+
+    double comp_time = MPI_Wtime() - comp_start;
+    if (rank == 0) {
+        std::cout << "Computation time: " << comp_time << " seconds" << std::endl;
+    }
+
+    // Start gather timer
+    double gather_start = MPI_Wtime();
 
     // Gather results from all processes
     if (rank == 0) {
@@ -105,6 +138,23 @@ int main(int argc, char** argv) {
     else {
         // Send local results to the master process
         MPI_Send(local_result.data(), local_rows, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+    }
+
+    double gather_time = MPI_Wtime() - gather_start;
+    if (rank == 0) {
+        std::cout << "Gather time: " << gather_time << " seconds" << std::endl;
+    }
+
+    // Calculate and print total time
+    double total_time = MPI_Wtime() - total_start;
+    if (rank == 0) {
+        std::cout << "\nTiming Summary:" << std::endl;
+        std::cout << "Initialization: " << init_time << " seconds" << std::endl;
+        std::cout << "Distribution: " << dist_time << " seconds" << std::endl;
+        std::cout << "Computation: " << comp_time << " seconds" << std::endl;
+        std::cout << "Gather: " << gather_time << " seconds" << std::endl;
+        std::cout << "Total time: " << total_time << " seconds" << std::endl;
+        std::cout << "----------------------------------------" << std::endl;
     }
 
     MPI_Finalize();
