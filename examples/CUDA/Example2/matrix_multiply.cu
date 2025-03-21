@@ -17,6 +17,7 @@
  * To use half precision (__half):
  * 1. Change the typedef to: typedef __half real_t;
  * 2. Make sure your GPU supports half precision (compute capability 5.3 or higher)
+ * 3. Compile with: nvcc -arch=sm_53 matrix_multiply.cu -o matrix_multiply
  */
 
 // nvcc -o matrix_multiply matrix_multiply.cu
@@ -56,6 +57,14 @@ __device__ __half float2half(float x) {
     return __float2half(x);
 }
 #endif
+
+// Helper function to convert random number to real_t
+// This handles the conversion properly for all types including __half
+template<typename T>
+T rand_to_real() {
+    float temp = rand() / (float)RAND_MAX;
+    return static_cast<T>(temp);
+}
 
 /**
  * The main computation function that runs on the GPU
@@ -119,8 +128,8 @@ int main() {
     
     // Fill our matrices with random numbers between 0 and 1
     for (int i = 0; i < size * size; i++) {
-        h_A[i] = rand() / (real_t)RAND_MAX;
-        h_B[i] = rand() / (real_t)RAND_MAX;
+        h_A[i] = rand_to_real<real_t>();
+        h_B[i] = rand_to_real<real_t>();
     }
     
     // Step 2: Set up GPU memory
