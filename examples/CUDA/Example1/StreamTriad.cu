@@ -32,7 +32,9 @@ __global__ void StreamTriad(
 
     // Perform the triad operation: c[i] = a[i] + scalar*b[i]
     // This is the core computation that each thread performs
-    c[i] = a[i] + scalar*b[i];
+
+    
+
 }
 
 #include <stdio.h>
@@ -69,24 +71,9 @@ int main(int argc, char *argv[]){
     cudaError_t err;  // Variable to store CUDA error codes
     
     // Allocate memory on the GPU for each array
-    // cudaMalloc allocates memory on the GPU device
-    err = cudaMalloc(&a_d, stream_array_size*sizeof(double));
-    if (err != cudaSuccess) {
-        printf("Error allocating a_d: %s\n", cudaGetErrorString(err));
-        return -1;
-    }
-    
-    err = cudaMalloc(&b_d, stream_array_size*sizeof(double));
-    if (err != cudaSuccess) {
-        printf("Error allocating b_d: %s\n", cudaGetErrorString(err));
-        return -1;
-    }
-    
-    err = cudaMalloc(&c_d, stream_array_size*sizeof(double));
-    if (err != cudaSuccess) {
-        printf("Error allocating c_d: %s\n", cudaGetErrorString(err));
-        return -1;
-    }
+    // cudaMalloc allocates memory on the GPU device 
+    // Hint: cudaMalloc(&a_d, stream_array_size*sizeof(double));
+   
 
     // setting block size and padding total grid size to get even block sizes
     // Block size is the number of threads per block (must be a multiple of 32)
@@ -100,17 +87,8 @@ int main(int argc, char *argv[]){
         
         // copying array data from host to device
         // cudaMemcpyHostToDevice indicates transfer direction
-        err = cudaMemcpy(a_d, a, stream_array_size*sizeof(double), cudaMemcpyHostToDevice);
-        if (err != cudaSuccess) {
-            printf("Error copying a to device: %s\n", cudaGetErrorString(err));
-            return -1;
-        }
+        // Hint: cudaMemcpy(a_d, a, stream_array_size*sizeof(double), cudaMemcpyHostToDevice);
         
-        err = cudaMemcpy(b_d, b, stream_array_size*sizeof(double), cudaMemcpyHostToDevice);
-        if (err != cudaSuccess) {
-            printf("Error copying b to device: %s\n", cudaGetErrorString(err));
-            return -1;
-        }
         
         // Synchronize to ensure data transfer is complete
         // This ensures all data is on the GPU before kernel launch
