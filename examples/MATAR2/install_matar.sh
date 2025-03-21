@@ -43,8 +43,6 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="${SCRIPT_DIR}/build_${build_type}"
 
-# Create the build directory if it doesn't exist
-mkdir -p "${BUILD_DIR}"
 
 # Get the directory where the script is called from
 CURRENT_DIR=$(pwd)

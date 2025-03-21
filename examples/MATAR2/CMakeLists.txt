@@ -5,8 +5,12 @@ project(matar_matmul)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-serial/kokkos)
-set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-serial/matar)
+# Add option for build type
+option(BUILD_TYPE "Type of build (serial, cuda, etc.)" "serial")
+
+# Set paths using the build type
+set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos)
+set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar)
 
 # Find required packages
 find_package(Kokkos REQUIRED)
@@ -28,6 +32,7 @@ target_include_directories(matmul PRIVATE
 
 # Print configuration information
 message(STATUS "Building MATAR matrix multiplication example")
+message(STATUS "Build type: ${BUILD_TYPE}")
 message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "C++ flags: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Kokkos found: ${Kokkos_FOUND}")
