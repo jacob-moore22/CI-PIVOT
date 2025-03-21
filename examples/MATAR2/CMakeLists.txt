@@ -21,6 +21,7 @@ target_link_libraries(matmul PRIVATE
 # Add include directories
 target_include_directories(matmul PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}../MATAR/src/include
 )
 
 # Print configuration information
