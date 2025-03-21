@@ -43,10 +43,8 @@ public:
  * Optimized parallel vector-matrix multiplication using MPI
  * This version includes:
  * 1. MPI_Scatter/Gather for efficient communication
- * 2. Non-blocking communication
- * 3. 2D process grid layout
- * 4. Memory alignment
- * 5. Process affinity
+ * 2. Memory alignment
+ * 3. Process affinity
  */
 int main(int argc, char** argv) {
     // Initialize MPI and get rank and size
@@ -69,24 +67,11 @@ int main(int argc, char** argv) {
     // Problem size
     const int N = 1000; // Adjust as needed
 
-    // Create 2D process grid
-    int grid_size = static_cast<int>(sqrt(size));
-    if (grid_size * grid_size != size) {
-        if (rank == 0) {
-            std::cerr << "Error: Number of processes must be a perfect square" << std::endl;
-        }
-        MPI_Finalize();
-        return 1;
-    }
-    
-    int row_rank = rank / grid_size;
-    int col_rank = rank % grid_size;
-    
     // Calculate local work size
-    int rows_per_proc = N / grid_size;
-    int cols_per_proc = N / grid_size;
-    int local_rows = (row_rank == grid_size - 1) ? (N - row_rank * rows_per_proc) : rows_per_proc;
-    int local_cols = (col_rank == grid_size - 1) ? (N - col_rank * cols_per_proc) : cols_per_proc;
+    int rows_per_proc = N / size;
+    int local_start_row = rank * rows_per_proc;
+    int local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
+    int local_rows = local_end_row - local_start_row;
 
     // Start initialization timer
     double init_start = MPI_Wtime();
@@ -141,6 +126,7 @@ int main(int argc, char** argv) {
 
     // Perform local matrix-vector multiplication
     for (int i = 0; i < local_rows; i++) {
+        local_result[i] = 0.0;
         for (int j = 0; j < N; j++) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
@@ -154,21 +140,17 @@ int main(int argc, char** argv) {
     // Start gather timer
     double gather_start = MPI_Wtime();
 
-    // Gather results using non-blocking communication
-    MPI_Request request;
+    // Gather results using blocking communication
     if (rank == 0) {
         // Copy local results
         std::copy(local_result.begin(), local_result.end(), result.begin());
 
         // Receive results from other processes
         for (int source = 1; source < size; source++) {
-            int source_start_row = (source / grid_size) * rows_per_proc;
-            int source_rows = (source / grid_size == grid_size - 1) ? 
-                            (N - source_start_row) : rows_per_proc;
-            
-            MPI_Irecv(&result[source_start_row], source_rows, MPI_DOUBLE,
-                     source, 1, MPI_COMM_WORLD, &request);
-            MPI_Wait(&request, MPI_STATUS_IGNORE);
+            int source_start_row = source * rows_per_proc;
+            int source_rows = (source == size - 1) ? (N - source_start_row) : rows_per_proc;
+            MPI_Recv(&result[source_start_row], source_rows, MPI_DOUBLE,
+                    source, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
 
         std::cout << "Result vector computed successfully." << std::endl;
@@ -182,9 +164,7 @@ int main(int argc, char** argv) {
     } 
     else {
         // Send results to root process
-        MPI_Isend(local_result.data(), local_rows, MPI_DOUBLE,
-                 0, 1, MPI_COMM_WORLD, &request);
-        MPI_Wait(&request, MPI_STATUS_IGNORE);
+        MPI_Send(local_result.data(), local_rows, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     }
 
     double gather_time = MPI_Wtime() - gather_start;
