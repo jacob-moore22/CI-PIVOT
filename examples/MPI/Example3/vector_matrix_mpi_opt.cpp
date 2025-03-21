@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     double total_start = MPI_Wtime();
 
     // Problem size
-    const size_t N = 100000; // Adjust as needed
+    const size_t N = 10000; // Adjust as needed
 
     // Calculate local work size
     size_t rows_per_proc = N / size;

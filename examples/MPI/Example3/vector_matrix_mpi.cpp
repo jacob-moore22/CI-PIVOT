@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 
     // Problem size: N x N matrix and N-element vector
     // This determines the size of our computation
-    const size_t N = 100000; // Adjust as needed
+    const size_t N = 10000; // Adjust as needed
 
     // Calculate how many rows each process will handle
     // This divides the work evenly among processes
