@@ -5,14 +5,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /**
  * Parallel vector-matrix multiplication using MPI
- * Multiplies an N-element vector by an N×N matrix
+ * This example demonstrates:
+ * 1. Basic MPI initialization and finalization
+ * 2. Process rank and size concepts
+ * 3. Point-to-point communication (Send/Recv)
+ * 4. Collective communication (Broadcast)
+ * 5. Data distribution and gathering
+ * 6. Local computation with distributed data
  */
 int main(int argc, char** argv) {
-    // Initialize MPI and get rank and size
+    // Initialize the MPI environment
+    // This must be called before any other MPI function
     MPI_Init(&argc, &argv);
+    
+    // Get the rank (process ID) and size (total number of processes)
+    // rank: unique identifier for each process (0 to size-1)
+    // size: total number of processes running the program
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -20,10 +30,12 @@ int main(int argc, char** argv) {
     // Start total program timer
     double total_start = MPI_Wtime();
 
-    // Problem size
+    // Problem size: N x N matrix and N-element vector
+    // This determines the size of our computation
     const int N = 1000; // Adjust as needed
 
-    // Determine local work size
+    // Calculate how many rows each process will handle
+    // This divides the work evenly among processes
     int rows_per_proc = N / size;
     int local_start_row = rank * rows_per_proc;
     int local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
@@ -32,19 +44,24 @@ int main(int argc, char** argv) {
     // Start initialization timer
     double init_start = MPI_Wtime();
 
-    // Allocate memory for the matrix, vector, and result
+    // Allocate memory for our data structures
+    // matrix: full matrix (only used by rank 0)
+    // vector: input vector (will be broadcast to all processes)
+    // local_result: each process's portion of the result
+    // result: final result (only used by rank 0)
     std::vector<double> matrix;
     std::vector<double> vector(N);
     std::vector<double> local_result(local_rows, 0.0);
     std::vector<double> result;
 
-    // Master process initializes data and distributes
+    // Only rank 0 (master process) initializes the full data
     if (rank == 0) {
-        // Initialize the matrix and vector
+        // Allocate space for the full matrix and result vector
         matrix.resize(N * N);
         result.resize(N);
 
-        // Fill with sample data
+        // Initialize with sample data
+        // In a real application, this would be your actual data
         for (int i = 0; i < N; i++) {
             vector[i] = i + 1.0;
             for (int j = 0; j < N; j++) {
@@ -64,17 +81,20 @@ int main(int argc, char** argv) {
     double dist_start = MPI_Wtime();
 
     // Broadcast the vector to all processes
+    // MPI_Bcast: one-to-all communication
+    // Parameters: data, count, datatype, root (rank of process broadcasting data), communicator
     MPI_Bcast(vector.data(), N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Allocate memory for local part of the matrix
+    // Allocate memory for this process's portion of the matrix
     std::vector<double> local_matrix(local_rows * N);
 
-    // Distribute the matrix rows to all processes
+    // Distribute matrix rows to all processes
     if (rank == 0) {
-        // Send matrix parts to other processes
+        // Master process sends parts of the matrix to other processes
         for (int dest = 1; dest < size; dest++) {
             int dest_start_row = dest * rows_per_proc;
             int dest_rows = (dest == size - 1) ? (N - dest_start_row) : rows_per_proc;
+            // MPI_Send: point-to-point communication
             MPI_Send(&matrix[dest_start_row * N], dest_rows * N, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);
         }
 
@@ -84,7 +104,8 @@ int main(int argc, char** argv) {
         }
     } 
     else {
-        // Receive matrix part from the master process
+        // Other processes receive their portion of the matrix
+        // MPI_Recv: point-to-point communication
         MPI_Recv(local_matrix.data(), local_rows * N, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
@@ -96,7 +117,8 @@ int main(int argc, char** argv) {
     // Start computation timer
     double comp_start = MPI_Wtime();
 
-    // Perform local matrix-vector multiplication
+    // Each process performs its portion of the matrix-vector multiplication
+    // This is the actual computation part
     for (int i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
         for (int j = 0; j < N; j++) {
@@ -112,9 +134,9 @@ int main(int argc, char** argv) {
     // Start gather timer
     double gather_start = MPI_Wtime();
 
-    // Gather results from all processes
+    // Gather results from all processes back to rank 0
     if (rank == 0) {
-        // Copy local results to the appropriate position in the final result
+        // Copy local results to the final result vector
         for (int i = 0; i < local_rows; i++) {
             result[i] = local_result[i];
         }
@@ -136,7 +158,7 @@ int main(int argc, char** argv) {
         std::cout << std::endl;
     } 
     else {
-        // Send local results to the master process
+        // Other processes send their results to rank 0
         MPI_Send(local_result.data(), local_rows, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     }
 
@@ -157,6 +179,7 @@ int main(int argc, char** argv) {
         std::cout << "----------------------------------------" << std::endl;
     }
 
+    // Clean up MPI environment
     MPI_Finalize();
     return 0;
 }
