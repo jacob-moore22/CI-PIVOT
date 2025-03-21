@@ -58,12 +58,29 @@ __device__ __half float2half(float x) {
 }
 #endif
 
+// Helper function to convert half to float for printing
+#ifdef __CUDA_ARCH__
+__device__ float half2float(__half x) {
+    return __half2float(x);
+}
+#endif
+
 // Helper function to convert random number to real_t
 // This handles the conversion properly for all types including __half
 template<typename T>
 T rand_to_real() {
     float temp = rand() / (float)RAND_MAX;
     return static_cast<T>(temp);
+}
+
+// Helper function to print real_t values
+template<typename T>
+void print_real(const char* format, T value) {
+    if constexpr (std::is_same_v<T, __half>) {
+        printf(format, __half2float(value));
+    } else {
+        printf(format, value);
+    }
 }
 
 /**
@@ -194,7 +211,11 @@ int main() {
             for (int k = 0; k < size; k++) {
                 expected += h_A[i * size + k] * h_B[k * size + j];
             }
-            printf("C[%d][%d] = %.2f (expected: %.2f)\n", i, j, h_C[i * size + j], expected);
+            printf("C[%d][%d] = ", i, j);
+            print_real<real_t>("%.2f", h_C[i * size + j]);
+            printf(" (expected: ");
+            print_real<real_t>("%.2f", expected);
+            printf(")\n");
         }
     }
     
