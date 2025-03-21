@@ -75,6 +75,14 @@ int main(int argc, char** argv) {
 
     // Create 2D process grid
     int grid_size = static_cast<int>(sqrt(size));
+    if (grid_size * grid_size != size) {
+        if (rank == 0) {
+            std::cerr << "Error: Number of processes must be a perfect square" << std::endl;
+        }
+        MPI_Finalize();
+        return 1;
+    }
+    
     int row_rank = rank / grid_size;
     int col_rank = rank % grid_size;
     
@@ -93,11 +101,6 @@ int main(int argc, char** argv) {
     std::vector<double, AlignedAllocator<double, 64>> local_result(local_rows, 0.0);
     std::vector<double, AlignedAllocator<double, 64>> result;
 
-    // Create custom MPI data type for row communication
-    MPI_Datatype row_type;
-    MPI_Type_contiguous(N, MPI_DOUBLE, &row_type);
-    MPI_Type_commit(&row_type);
-
     // Initialize data on root process
     if (rank == 0) {
         matrix.resize(N * N);
@@ -107,7 +110,7 @@ int main(int argc, char** argv) {
         #pragma omp parallel for collapse(2)
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                matrix[i + j * N] = (i + j) / 2.0; // Column-major order
+                matrix[i * N + j] = (i + j) / 2.0; // Row-major order for MPI_Scatter
                 if (i == 0) vector[j] = j + 1.0;
             }
         }
@@ -127,7 +130,7 @@ int main(int argc, char** argv) {
     MPI_Bcast(vector.data(), N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // Allocate memory for local matrix portion
-    std::vector<double, AlignedAllocator<double, 64>> local_matrix(local_rows * local_cols);
+    std::vector<double, AlignedAllocator<double, 64>> local_matrix(local_rows * N);
 
     // Scatter matrix rows to processes
     MPI_Scatter(matrix.data(), rows_per_proc * N, MPI_DOUBLE,
@@ -207,9 +210,6 @@ int main(int argc, char** argv) {
         std::cout << "Total time: " << total_time << " seconds" << std::endl;
         std::cout << "----------------------------------------" << std::endl;
     }
-
-    // Clean up MPI data type
-    MPI_Type_free(&row_type);
     
     // Clean up MPI environment
     MPI_Finalize();
