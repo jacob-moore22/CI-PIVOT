@@ -92,6 +92,7 @@ project(MatarExample1 CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Release)
 
 # Define the namespace explicitly
 add_definitions(-DMTR_NAMESPACE=mtr)
