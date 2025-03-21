@@ -67,3 +67,6 @@ sudo snap install valgrind --classic
 echo "Installing kcachegrind"
 sudo snap install kcachegrind
 
+echo "Installing OpenMPI"
+sudo apt update
+sudo apt install openmpi-bin openmpi-common libopenmpi-dev
