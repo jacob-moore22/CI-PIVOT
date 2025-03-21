@@ -32,14 +32,14 @@ int main(int argc, char** argv) {
 
     // Problem size: N x N matrix and N-element vector
     // This determines the size of our computation
-    const int N = 1000; // Adjust as needed
+    const size_t N = 100000; // Adjust as needed
 
     // Calculate how many rows each process will handle
     // This divides the work evenly among processes
-    int rows_per_proc = N / size;
-    int local_start_row = rank * rows_per_proc;
-    int local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
-    int local_rows = local_end_row - local_start_row;
+    size_t rows_per_proc = N / size;
+    size_t local_start_row = rank * rows_per_proc;
+    size_t local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
+    size_t local_rows = local_end_row - local_start_row;
 
     // Start initialization timer
     double init_start = MPI_Wtime();
@@ -62,9 +62,9 @@ int main(int argc, char** argv) {
 
         // Initialize with sample data
         // In a real application, this would be your actual data
-        for (int i = 0; i < N; i++) {
+        for (size_t i = 0; i < N; i++) {
             vector[i] = i + 1.0;
-            for (int j = 0; j < N; j++) {
+            for (size_t j = 0; j < N; j++) {
                 matrix[i * N + j] = (i + j) / 2.0;
             }
         }
@@ -92,14 +92,14 @@ int main(int argc, char** argv) {
     if (rank == 0) {
         // Master process sends parts of the matrix to other processes
         for (int dest = 1; dest < size; dest++) {
-            int dest_start_row = dest * rows_per_proc;
-            int dest_rows = (dest == size - 1) ? (N - dest_start_row) : rows_per_proc;
+            size_t dest_start_row = dest * rows_per_proc;
+            size_t dest_rows = (dest == size - 1) ? (N - dest_start_row) : rows_per_proc;
             // MPI_Send: point-to-point communication
             MPI_Send(&matrix[dest_start_row * N], dest_rows * N, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);
         }
 
         // Copy local part for rank 0
-        for (int i = 0; i < local_rows * N; i++) {
+        for (size_t i = 0; i < local_rows * N; i++) {
             local_matrix[i] = matrix[i];
         }
     } 
@@ -119,9 +119,9 @@ int main(int argc, char** argv) {
 
     // Each process performs its portion of the matrix-vector multiplication
     // This is the actual computation part
-    for (int i = 0; i < local_rows; i++) {
+    for (size_t i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
-        for (int j = 0; j < N; j++) {
+        for (size_t j = 0; j < N; j++) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
     }
@@ -137,14 +137,14 @@ int main(int argc, char** argv) {
     // Gather results from all processes back to rank 0
     if (rank == 0) {
         // Copy local results to the final result vector
-        for (int i = 0; i < local_rows; i++) {
+        for (size_t i = 0; i < local_rows; i++) {
             result[i] = local_result[i];
         }
 
         // Receive results from other processes
         for (int source = 1; source < size; source++) {
-            int source_start_row = source * rows_per_proc;
-            int source_rows = (source == size - 1) ? (N - source_start_row) : rows_per_proc;
+            size_t source_start_row = source * rows_per_proc;
+            size_t source_rows = (source == size - 1) ? (N - source_start_row) : rows_per_proc;
             MPI_Recv(&result[source_start_row], source_rows, MPI_DOUBLE, source, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         
         // Print first few elements for verification
         std::cout << "First 5 elements of result: ";
-        for (int i = 0; i < std::min(5, N); i++) {
+        for (size_t i = 0; i < std::min(5UL, N); i++) {
             std::cout << result[i] << " ";
         }
         std::cout << std::endl;

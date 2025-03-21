@@ -65,13 +65,13 @@ int main(int argc, char** argv) {
     double total_start = MPI_Wtime();
 
     // Problem size
-    const int N = 1000; // Adjust as needed
+    const size_t N = 100000; // Adjust as needed
 
     // Calculate local work size
-    int rows_per_proc = N / size;
-    int local_start_row = rank * rows_per_proc;
-    int local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
-    int local_rows = local_end_row - local_start_row;
+    size_t rows_per_proc = N / size;
+    size_t local_start_row = rank * rows_per_proc;
+    size_t local_end_row = (rank == size - 1) ? N : local_start_row + rows_per_proc;
+    size_t local_rows = local_end_row - local_start_row;
 
     // Start initialization timer
     double init_start = MPI_Wtime();
@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
         result.resize(N);
 
         // Initialize with sample data
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
+        for (size_t i = 0; i < N; i++) {
+            for (size_t j = 0; j < N; j++) {
                 matrix[i * N + j] = (i + j) / 2.0; // Row-major order for MPI_Scatter
                 if (i == 0) vector[j] = j + 1.0;
             }
@@ -125,9 +125,9 @@ int main(int argc, char** argv) {
     double comp_start = MPI_Wtime();
 
     // Perform local matrix-vector multiplication
-    for (int i = 0; i < local_rows; i++) {
+    for (size_t i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
-        for (int j = 0; j < N; j++) {
+        for (size_t j = 0; j < N; j++) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
     }
@@ -147,8 +147,8 @@ int main(int argc, char** argv) {
 
         // Receive results from other processes
         for (int source = 1; source < size; source++) {
-            int source_start_row = source * rows_per_proc;
-            int source_rows = (source == size - 1) ? (N - source_start_row) : rows_per_proc;
+            size_t source_start_row = source * rows_per_proc;
+            size_t source_rows = (source == size - 1) ? (N - source_start_row) : rows_per_proc;
             MPI_Recv(&result[source_start_row], source_rows, MPI_DOUBLE,
                     source, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
         
         // Print first few elements for verification
         std::cout << "First 5 elements of result: ";
-        for (int i = 0; i < std::min(5, N); i++) {
+        for (size_t i = 0; i < std::min(5UL, N); i++) {
             std::cout << result[i] << " ";
         }
         std::cout << std::endl;
