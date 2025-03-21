@@ -5,6 +5,9 @@ project(matar_matmul)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-serial/kokkos)
+set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-serial/matar)
+
 # Find required packages
 find_package(Kokkos REQUIRED)
 find_package(MATAR REQUIRED)
@@ -15,7 +18,6 @@ add_executable(matmul matar_matmul.cpp)
 # Link against required libraries
 target_link_libraries(matmul PRIVATE 
     Kokkos::kokkos
-    MATAR::matar
 )
 
 # Add include directories
