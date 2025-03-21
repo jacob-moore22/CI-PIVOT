@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenMP REQUIRED)
 
 # Add executable
-add_executable(stream_triad stream_triad.cpp timer.c)
+add_executable(stream_triad stream_triad.cpp timer.cpp)
 
 # Set OpenMP flags for GPU offload
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
