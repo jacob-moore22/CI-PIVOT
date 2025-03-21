@@ -4,7 +4,6 @@
 #include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
 
 // Aligned allocator for better cache performance
 template<typename T, size_t Alignment>
@@ -44,13 +43,10 @@ public:
  * Optimized parallel vector-matrix multiplication using MPI
  * This version includes:
  * 1. MPI_Scatter/Gather for efficient communication
- * 2. OpenMP for parallel computation
- * 3. SIMD vectorization
- * 4. Non-blocking communication
- * 5. 2D process grid layout
- * 6. Memory alignment
- * 7. Process affinity
- * 8. Custom MPI data types
+ * 2. Non-blocking communication
+ * 3. 2D process grid layout
+ * 4. Memory alignment
+ * 5. Process affinity
  */
 int main(int argc, char** argv) {
     // Initialize MPI and get rank and size
@@ -107,7 +103,6 @@ int main(int argc, char** argv) {
         result.resize(N);
 
         // Initialize with sample data
-        #pragma omp parallel for collapse(2)
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 matrix[i * N + j] = (i + j) / 2.0; // Row-major order for MPI_Scatter
@@ -144,10 +139,8 @@ int main(int argc, char** argv) {
     // Start computation timer
     double comp_start = MPI_Wtime();
 
-    // Perform local matrix-vector multiplication with OpenMP and SIMD
-    #pragma omp parallel for
+    // Perform local matrix-vector multiplication
     for (int i = 0; i < local_rows; i++) {
-        #pragma omp simd
         for (int j = 0; j < N; j++) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
