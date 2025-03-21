@@ -12,6 +12,12 @@ option(BUILD_TYPE "Type of build (serial, cuda, etc.)" "serial")
 set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos)
 set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar)
 
+# Add Kokkos and MATAR to CMAKE_PREFIX_PATH
+list(APPEND CMAKE_PREFIX_PATH 
+    ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos
+    ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar
+)
+
 # Find required packages
 find_package(Kokkos REQUIRED)
 find_package(MATAR REQUIRED)
@@ -36,4 +42,5 @@ message(STATUS "Build type: ${BUILD_TYPE}")
 message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "C++ flags: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Kokkos found: ${Kokkos_FOUND}")
-message(STATUS "MATAR found: ${MATAR_FOUND}") 
+message(STATUS "MATAR found: ${MATAR_FOUND}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}") 

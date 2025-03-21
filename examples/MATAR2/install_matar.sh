@@ -71,9 +71,9 @@ fi
 
 # Source the build script with proper arguments
 echo "Building Kokkos..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-kokkos
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-kokkos --build_cores=4
 
 echo "Building MATAR..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-matar
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-matar --build_cores=4
 
 echo "Matar installation complete"
