@@ -14,6 +14,24 @@ option(BUILD_TYPE "Type of build (serial, cuda, etc.)" "serial")
 set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos)
 set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar)
 
+# Check if BUILD_TYPE is set
+if(NOT BUILD_TYPE)
+    message(FATAL_ERROR "BUILD_TYPE not set. Please specify build type using:
+    cmake -DBUILD_TYPE=<type> ..
+    where <type> is one of: serial, cuda, openmp, pthreads, hip")
+endif()
+
+# Add definitions based on build type
+add_definitions(-DHAVE_KOKKOS=1)
+
+if(BUILD_TYPE STREQUAL "openmp")
+    add_definitions(-DHAVE_OPENMP=1)
+endif()
+
+if(BUILD_TYPE STREQUAL "cuda") 
+    add_definitions(-DHAVE_CUDA=1)
+endif()
+
 # Add Kokkos and MATAR to CMAKE_PREFIX_PATH
 list(APPEND CMAKE_PREFIX_PATH 
     ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos
@@ -25,12 +43,12 @@ find_package(Kokkos REQUIRED)
 
 message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 
-message(STATUS "Matar headers: ${CMAKE_SOURCE_DIR}../MATAR/src/include")
+message(STATUS "Matar headers: ${CMAKE_SOURCE_DIR}/MATAR/src/include")
 
 # Add executable
 add_executable(matmul matar_matmul.cpp)
 
-target_include_directories(MyExecutable PRIVATE /path/to/headers)
+# target_include_directories(matmul PRIVATE /path/to/headers)
 
 # Link against required libraries
 target_link_libraries(matmul PRIVATE 
@@ -40,7 +58,7 @@ target_link_libraries(matmul PRIVATE
 # Add include directories
 target_include_directories(matmul PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}../MATAR/src/include
+    ${CMAKE_SOURCE_DIR}/MATAR/src/include
 )
 
 # Print configuration information
