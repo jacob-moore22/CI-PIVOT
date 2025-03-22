@@ -54,7 +54,7 @@ MATAR_BUILD_CORES=$(nproc)
 # Clone MATAR repository if it doesn't exist
 if [ ! -d "${MATAR_SOURCE_DIR}" ]; then
     echo "Cloning MATAR repository..."
-    git clone https://github.com/lanl/MATAR.git
+    git clone https://github.com/jacob-moore22/MATAR.git
 fi
 
 # Verify the repository was cloned successfully
@@ -70,10 +70,8 @@ if [ ! -f "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" ]; then
 fi
 
 # Source the build script with proper arguments
-echo "Building Kokkos..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-kokkos --build_cores=4
+echo "Building examples..."
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type}--build_cores=4
 
-echo "Building MATAR..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-matar --build_cores=4
 
 echo "Matar installation complete"
