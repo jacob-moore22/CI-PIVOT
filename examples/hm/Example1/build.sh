@@ -78,10 +78,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find Kokkos
 find_package(Kokkos REQUIRED)
 
+
+
+
 include_directories(${CMAKE_SOURCE_DIR}/../MATAR)
 message(STATUS "Including MATAR directory: ${CMAKE_SOURCE_DIR}/../MATAR")
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/../MATAR)
-    message(FATAL_ERROR "MATAR directory not found at: ${CMAKE_SOURCE_DIR}/../MATAR")
+    get_filename_component(MATAR_PATH "${CMAKE_SOURCE_DIR}/../MATAR" ABSOLUTE)
+    message(FATAL_ERROR "MATAR directory not found at: ${MATAR_PATH}")
 endif()
 
 
