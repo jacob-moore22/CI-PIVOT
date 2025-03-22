@@ -82,6 +82,7 @@ find_package(Kokkos REQUIRED)
 
 
 include_directories(${CMAKE_SOURCE_DIR}/../MATAR)
+message(STATUS "CMAKE_SOURCE_DIR absolute path: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Including MATAR directory: ${CMAKE_SOURCE_DIR}/../MATAR")
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/../MATAR)
     get_filename_component(MATAR_PATH "${CMAKE_SOURCE_DIR}/../MATAR" ABSOLUTE)
