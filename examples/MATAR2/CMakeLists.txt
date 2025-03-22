@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+
 project(matar_matmul)
 
 # Set C++ standard
@@ -16,7 +16,7 @@ option(BUILD_TYPE "Type of build (serial, cuda, etc.)" "serial")
 
 # Set paths using the build type
 set(Kokkos_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/kokkos)
-set(MATAR_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar)
+set(Matar_DIR ${CMAKE_SOURCE_DIR}/MATAR/build-matar-${BUILD_TYPE}/matar)
 
 # Check if BUILD_TYPE is set
 if(NOT BUILD_TYPE)
@@ -44,6 +44,7 @@ list(APPEND CMAKE_PREFIX_PATH
 
 # Find required packages
 find_package(Kokkos REQUIRED)
+find_package(Matar REQUIRED)
 
 message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 
