@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add option for build type
+# To set this option when calling cmake, use:
+#   cmake -DBUILD_TYPE=serial|cuda|openmp|pthreads|hip ..
 option(BUILD_TYPE "Type of build (serial, cuda, etc.)" "serial")
 
 # Set paths using the build type
@@ -20,10 +22,15 @@ list(APPEND CMAKE_PREFIX_PATH
 
 # Find required packages
 find_package(Kokkos REQUIRED)
-find_package(MATAR REQUIRED)
+
+message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+
+message(STATUS "Matar headers: ${CMAKE_SOURCE_DIR}../MATAR/src/include")
 
 # Add executable
 add_executable(matmul matar_matmul.cpp)
+
+target_include_directories(MyExecutable PRIVATE /path/to/headers)
 
 # Link against required libraries
 target_link_libraries(matmul PRIVATE 
