@@ -71,13 +71,13 @@ fi
 
 # Source the build script with proper arguments
 echo "Building examples serial..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=serial--build_cores=4
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=serial --build_cores=4
 
 echo "Building examples openmp..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=openmp--build_cores=4
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=openmp --build_cores=4
 
 echo "Building examples cuda..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=cuda--build_cores=4
+source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=cuda --build_cores=4
 
 
 
