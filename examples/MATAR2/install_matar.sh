@@ -8,35 +8,35 @@ else
     return 1
 fi
 
-# Function to display usage
-usage() {
-    echo "Usage: $0 [-t build_type] [-d]"
-    echo "build_type options: serial, openmp, pthreads, cuda, hip"
-    echo "  -t    Specify build type (required)"
-    echo "  -d    Enable debug build (optional)"
-    exit 1
-}
+# # Function to display usage
+# usage() {
+#     echo "Usage: $0 [-t build_type] [-d]"
+#     echo "build_type options: serial, openmp, pthreads, cuda, hip"
+#     echo "  -t    Specify build type (required)"
+#     echo "  -d    Enable debug build (optional)"
+#     exit 1
+# }
 
-# Parse command line arguments
-while getopts "t:d" opt; do
-    case ${opt} in
-        t )
-            build_type=$OPTARG
-            ;;
-        d )
-            debug=true
-            ;;
-        \? )
-            usage
-            ;;
-    esac
-done
+# # Parse command line arguments
+# while getopts "t:d" opt; do
+#     case ${opt} in
+#         t )
+#             build_type=$OPTARG
+#             ;;
+#         d )
+#             debug=true
+#             ;;
+#         \? )
+#             usage
+#             ;;
+#     esac
+# done
 
-# Validate build type
-if [ -z "$build_type" ]; then
-    echo "Error: Build type (-t) is required"
-    usage
-fi
+# # Validate build type
+# if [ -z "$build_type" ]; then
+#     echo "Error: Build type (-t) is required"
+#     usage
+# fi
 
 
 # Get the directory where this script is located
