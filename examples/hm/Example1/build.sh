@@ -78,17 +78,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find Kokkos
 find_package(Kokkos REQUIRED)
 
+# Set multiple potential include paths to find MATAR
+include_directories(
+  "${SCRIPT_DIR}/../MATAR"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../MATAR"
+  "${CMAKE_SOURCE_DIR}/../MATAR"
+  "${CMAKE_BINARY_DIR}/../MATAR"
+)
 
-
-
-include_directories(${CMAKE_SOURCE_DIR}/../MATAR)
 message(STATUS "CMAKE_SOURCE_DIR absolute path: ${CMAKE_SOURCE_DIR}")
-message(STATUS "Including MATAR directory: ${CMAKE_SOURCE_DIR}/../MATAR")
-# if(NOT EXISTS ${CMAKE_SOURCE_DIR}/../MATAR)
-#     get_filename_component(MATAR_PATH "${CMAKE_SOURCE_DIR}/../MATAR" ABSOLUTE)
-#     message(FATAL_ERROR "MATAR directory not found at: ${MATAR_PATH}")
-# endif()
+message(STATUS "SCRIPT_DIR absolute path: ${SCRIPT_DIR}")
+message(STATUS "Primary MATAR include path: ${SCRIPT_DIR}/../MATAR")
 
+# Uncomment to debug if MATAR directory is not found
+# if(NOT EXISTS "${SCRIPT_DIR}/../MATAR")
+#     message(FATAL_ERROR "MATAR directory not found at: ${SCRIPT_DIR}/../MATAR")
+# endif()
 
 # Create the executable
 add_executable(matmul matmul.cpp)
@@ -100,7 +105,7 @@ echo "Building matmul example..."
 cd "${BUILD_DIR}"
 
 # Configure with CMake
-cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" ..
+cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" ..
 
 # Build
 make -j$(nproc)

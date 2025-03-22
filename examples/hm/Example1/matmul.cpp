@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <Kokkos_Core.hpp>
-#include <matar.h>
+#include "matar.h"
 #include "timer.hpp"
 
 // Required for MATAR data structures
