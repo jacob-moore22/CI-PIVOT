@@ -1,10 +1,12 @@
+cmake_minimum_required(VERSION 3.8)
+
+# Set policy for handling imported targets
+cmake_policy(SET CMP0111 NEW)
 
 project(matar_matmul)
 
 # Set C++ standard
 # Usage of C++17 standard requires CMake version >= 3.8
-cmake_minimum_required(VERSION 3.8)
-
 # Current usage of shared_ptr in MATAR requires C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -57,6 +59,7 @@ add_executable(matmul matar_matmul.cpp)
 
 # Link against required libraries
 target_link_libraries(matmul PRIVATE 
+    matar
     Kokkos::kokkos
 )
 
