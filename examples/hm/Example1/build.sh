@@ -79,6 +79,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Kokkos REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/../MATAR)
+message(STATUS "Including MATAR directory: ${CMAKE_SOURCE_DIR}/../MATAR")
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/../MATAR)
+    message(FATAL_ERROR "MATAR directory not found at: ${CMAKE_SOURCE_DIR}/../MATAR")
+endif()
+
 
 # Create the executable
 add_executable(matmul matmul.cpp)
