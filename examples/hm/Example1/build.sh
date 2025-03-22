@@ -78,6 +78,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find Kokkos
 find_package(Kokkos REQUIRED)
 
+add_definitions(-DHAVE_KOKKOS=1)
+
 # Set multiple potential include paths to find MATAR
 include_directories(
   "${SCRIPT_DIR}/../MATAR"
