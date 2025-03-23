@@ -70,15 +70,10 @@ source install/setup_env.sh
 # Create CMakeLists.txt for the example
 cat > "${SCRIPT_DIR}/CMakeLists.txt" << EOF
 cmake_minimum_required(VERSION 3.16)
-project(KokkosExample1 CXX)
+project(MATARExample1 CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Add compiler flags to suppress warnings
-if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-suppress 186")
-endif()
 
 # Find Kokkos
 find_package(Kokkos REQUIRED)
@@ -112,7 +107,7 @@ echo "Building matmul example..."
 cd "${BUILD_DIR}"
 
 # Configure with CMake
-cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" -DCMAKE_CXX_FLAGS="-diag-suppress 186" ..
+cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" ..
 
 # Build
 make -j$(nproc)
