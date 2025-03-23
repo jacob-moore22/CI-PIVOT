@@ -75,6 +75,11 @@ project(KokkosExample1 CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Add compiler flags to suppress warnings
+if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-suppress 186")
+endif()
+
 # Find Kokkos
 find_package(Kokkos REQUIRED)
 
@@ -107,7 +112,7 @@ echo "Building matmul example..."
 cd "${BUILD_DIR}"
 
 # Configure with CMake
-cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" ..
+cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" -DCMAKE_CXX_FLAGS="-diag-suppress 186" ..
 
 # Build
 make -j$(nproc)
