@@ -42,118 +42,79 @@ fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+KOKKOS_INSTALL_SCRIPT="../kokkos-install.sh"
 BUILD_DIR="${SCRIPT_DIR}/build_${build_type}"
+KOKKOS_INSTALL_DIR="${SCRIPT_DIR}/kokkos_${build_type}"
 
-# Create the build directory if it doesn't exist
+# Create build directory
 mkdir -p "${BUILD_DIR}"
 
-# Get the directory where the script is called from
-CURRENT_DIR=$(pwd)
-MATAR_SOURCE_DIR="${CURRENT_DIR}/MATAR"
-MATAR_BUILD_DIR="${CURRENT_DIR}/build_tmp/matar"
-MATAR_INSTALL_DIR="${CURRENT_DIR}/MATAR/install/matar"
-MATAR_BUILD_CORES=$(nproc)
-
-# Clone MATAR repository if it doesn't exist
-if [ ! -d "${MATAR_SOURCE_DIR}" ]; then
-    echo "Cloning MATAR repository..."
-    git clone https://github.com/lanl/MATAR.git
-fi
-
-# Verify the repository was cloned successfully
-if [ ! -f "${MATAR_SOURCE_DIR}/CMakeLists.txt" ]; then
-    echo "Error: Failed to clone MATAR repository or repository is invalid"
+# Add after KOKKOS_INSTALL_SCRIPT definition
+if [ ! -f "${KOKKOS_INSTALL_SCRIPT}" ]; then
+    echo "Error: Could not find kokkos-install.sh at ${KOKKOS_INSTALL_SCRIPT}"
     exit 1
 fi
 
-# Verify the build script exists
-if [ ! -f "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" ]; then
-    echo "Error: build-matar.sh not found at ${MATAR_SOURCE_DIR}/scripts/build-matar.sh"
-    exit 1
+# First, install Kokkos with the specified build type
+echo "Installing Kokkos with ${build_type} backend..."
+cd "${SCRIPT_DIR}"  # Ensure we're in the right directory
+if [ "$debug" = "true" ]; then
+    bash "${KOKKOS_INSTALL_SCRIPT}" -t "${build_type}" -d -p "${SCRIPT_DIR}/install"
+else
+    bash "${KOKKOS_INSTALL_SCRIPT}" -t "${build_type}" -p "${SCRIPT_DIR}/install"
 fi
 
-# Source the build script with proper arguments
-echo "Building Kokkos..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-kokkos
-
-echo "Building MATAR..."
-source "${MATAR_SOURCE_DIR}/scripts/build-matar.sh" --kokkos_build_type=${build_type} --build_action=install-matar
-
-echo "Matar installation complete"
-
-# Get the actual Kokkos install directory from MATAR's build
-KOKKOS_INSTALL_DIR="${CURRENT_DIR}/MATAR/install/kokkos"
+# Source the Kokkos environment
+source install/setup_env.sh
 
 # Create CMakeLists.txt for the example
-echo "Creating CMakeLists.txt for matar_matmul example..."
 cat > "${SCRIPT_DIR}/CMakeLists.txt" << EOF
 cmake_minimum_required(VERSION 3.16)
-project(MatarExample1 CXX)
+project(MATARExample1 CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BUILD_TYPE Release)
 
-# Define the namespace explicitly
-add_definitions(-DMTR_NAMESPACE=mtr)
+# Find Kokkos
+find_package(Kokkos REQUIRED)
+
 add_definitions(-DHAVE_KOKKOS=1)
 
-# Set CMake module path to find MATAR and Kokkos
-list(APPEND CMAKE_PREFIX_PATH "${MATAR_INSTALL_DIR}")
-list(APPEND CMAKE_PREFIX_PATH "${KOKKOS_INSTALL_DIR}")
+# Set multiple potential include paths to find MATAR
+include_directories(
+  "${SCRIPT_DIR}/../MATAR"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../MATAR"
+  "${CMAKE_SOURCE_DIR}/../MATAR"
+  "${CMAKE_BINARY_DIR}/../MATAR"
+)
 
-# Find packages
-find_package(Kokkos REQUIRED PATHS "${KOKKOS_INSTALL_DIR}" NO_DEFAULT_PATH)
+message(STATUS "CMAKE_SOURCE_DIR absolute path: ${CMAKE_SOURCE_DIR}")
+message(STATUS "SCRIPT_DIR absolute path: ${SCRIPT_DIR}")
+message(STATUS "Primary MATAR include path: ${SCRIPT_DIR}/../MATAR")
+
+# Uncomment to debug if MATAR directory is not found
+# if(NOT EXISTS "${SCRIPT_DIR}/../MATAR")
+#     message(FATAL_ERROR "MATAR directory not found at: ${SCRIPT_DIR}/../MATAR")
+# endif()
 
 # Create the executable
-add_executable(matar_matmul matar_matmul.cpp)
-
-# Add include directories for the target
-target_include_directories(matar_matmul PRIVATE 
-    "${MATAR_SOURCE_DIR}/src"
-    "${MATAR_SOURCE_DIR}/src/include"
-    "${MATAR_INSTALL_DIR}/include"
-    "${KOKKOS_INSTALL_DIR}/include"
-)
-
-# Link libraries
-target_link_libraries(matar_matmul 
-    Kokkos::kokkos
-)
-
-# Print include directories for debugging
-message(STATUS "MATAR source dir: ${MATAR_SOURCE_DIR}/src")
-message(STATUS "MATAR source matar dir: ${MATAR_SOURCE_DIR}/src/matar")
-message(STATUS "MATAR source kokkos dir: ${MATAR_SOURCE_DIR}/src/matar/kokkos")
-message(STATUS "MATAR install include dir: ${MATAR_INSTALL_DIR}/include")
-message(STATUS "MATAR install matar dir: ${MATAR_INSTALL_DIR}/include/matar")
-message(STATUS "MATAR install kokkos dir: ${MATAR_INSTALL_DIR}/include/matar/kokkos")
-message(STATUS "Kokkos include dir: ${KOKKOS_INSTALL_DIR}/include")
+add_executable(matmul matmul.cpp)
+target_link_libraries(matmul Kokkos::kokkos)
 EOF
 
 # Build the example
-echo "Building matar_matmul example..."
-
-# Create the build directory if it doesn't exist (just to be sure)
-mkdir -p "${BUILD_DIR}"
-cd "${BUILD_DIR}" || {
-    echo "Error: Failed to change to directory ${BUILD_DIR}"
-    exit 1
-}
+echo "Building matmul example..."
+cd "${BUILD_DIR}"
 
 # Configure with CMake
-cmake -DCMAKE_PREFIX_PATH="${MATAR_INSTALL_DIR};${KOKKOS_INSTALL_DIR}" \
-      -DMATAR_DIR="${MATAR_INSTALL_DIR}" \
-      -DKokkos_DIR="${KOKKOS_INSTALL_DIR}/lib/cmake/Kokkos" \
-      -DCMAKE_MODULE_PATH="${MATAR_INSTALL_DIR}/cmake" \
-      "${SCRIPT_DIR}"
+cmake -DCMAKE_PREFIX_PATH="${SCRIPT_DIR}/install" -DCMAKE_INCLUDE_PATH="${SCRIPT_DIR}/../MATAR" ..
 
 # Build
 make -j$(nproc)
 
 echo "Build completed!"
-echo "The executable can be found at: ${BUILD_DIR}/matar_matmul"
+echo "The executable can be found at: ${BUILD_DIR}/matmul"
 echo ""
 echo "To run the example:"
 echo "cd ${BUILD_DIR}"
-echo "./matar_matmul"
+echo "./matmul" 
