@@ -1,0 +1,38 @@
+# Makefile for compiling and running the C++ program with stdpar
+
+# Compiler and flags
+CXX = nvc++
+CXXFLAGS = -std=c++20 -fopenmp -Wall -Wextra
+LD_FLAGS = -lpthreads
+
+# Source file and executable name
+SRCS = triad.cc
+OBJS = $(SRCS:%.cc=%.o)
+DEPS = $(SRCS:%.cc=%.o)
+TARGET = triad
+
+# Default target: build the executable
+default: $(TARGET)
+
+# Rule to build the executable
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.d: %.cc
+	$(CXX) $(CXXFLAGS) -M $< -o $@
+
+# Rule to run the executable
+run: $(TARGET)
+	$(CURDIR)/$(TARGET)
+
+# Rule to clean up (remove the executable)
+clean:
+	rm -f $(TARGET)
+
+# Phony targets (not actual files)
+.PHONY: all run clean
+
+-include $(DEPS)
