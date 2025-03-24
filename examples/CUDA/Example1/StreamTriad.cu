@@ -1,4 +1,4 @@
-/** -*- C++ -*-
+/**
  * Stream Triad Benchmark Implementation using CUDA
  * This example demonstrates:
  * 1. Basic CUDA kernel definition and launch
@@ -16,8 +16,7 @@
 // the compiler this function will be called from the host and
 // executed on the GPU device. (NOTE: this code must be compiled with
 // a CUDA aware compiler such as nvcc or nvc++.)
-__global__ void StreamTriad(
-                            const int n,           // Total number of elements to process
+__global__ void StreamTriad(const int n,           // Total number of elements to process
                             const double scalar,   // Scalar multiplier for the triad operation
                             const double *a,       // Input array a
                             const double *b,       // Input array b
@@ -43,16 +42,14 @@ __global__ void StreamTriad(
 
   // TODO: For all remaining threads, perform a single triad operation:
   // e.g.  c[i] = a[i] + scalar*b[i]
-  
-  
-  
-  // BONUS: What would happen if this kernel were called with too few
-  // blocks and threads? How could you modify this code to handle this
-  // condition?
-  
+
 
   
 }
+
+// BONUS: What would happen if this kernel were called with too few
+// blocks and threads? How could you modify this code to handle this
+// condition?
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -123,7 +120,7 @@ int main(int argc, char *argv[]){
     
     
     // Synchronize to ensure data transfer is complete.
-    // This ensures all data is on the GPU before kernel launch
+    // This ensures all data is on the GPU before kernel launch.
     cudaDeviceSynchronize();
 
     cpu_timer_start(&tkernel);  // Start kernel time measurement
@@ -169,6 +166,7 @@ int main(int argc, char *argv[]){
     //   return -1;
     // }
         
+    // Do not include verification checks in total runtime
     ttotal_sum += cpu_timer_stop(ttotal);  // Record total time
         
     // Check results and print errors if found. limit to only 10 errors per iteration
