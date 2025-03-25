@@ -3,7 +3,7 @@
 # Compiler and flags
 CXX = nvc++
 #CXXFLAGS = -stdpar -std=c++17 -mp -gpu=cuda12.6 -Wall -Wextra
-CXXFLAGS = -stdpar -std=c++17 -mp -Wall -Wextra
+CXXFLAGS = -stdpar=gpu -std=c++17 -mp=gpu -Wall -Wextra
 
 # Source file and executable name
 SRCS = triad.cc
