@@ -11,10 +11,10 @@ using namespace mtr;
 
 /**
  * DistributedDCArray: A class that extends DCArrayKokkos with MPI communication capabilities
- * for distributed graph partitioning using ParMETIS
+ * for distributed data management with halo exchange
  * 
  * This class handles:
- * - Wrapping ParMETIS to decompose a graph
+ * - Managing distributed data across MPI processes
  * - Building the connectivity for HALO communications 
  * - Automating the communication process via a simple .comm() command
  */
@@ -30,16 +30,14 @@ private:
     int totalProcesses_;
     MPI_Comm communicator_;
     
-    // ParMETIS related members
-   
-   
+    // Distribution and connectivity information
+    
     // Array storing the distribution of vertices across processors
     // vertexDistribution_[i] contains the first global vertex number owned by processor i
     // Size is number of processors + 1, where vertexDistribution_[p+1] - vertexDistribution_[p] gives
     // number of vertices owned by processor p
     IndexArray vertexDistribution_;
     
-         
     // Array storing indices into adjacencyList_ array for each vertex's adjacency list
     // For vertex i, its adjacent vertices are stored in adjacencyList_[adjacencyPointers_[i]] through
     // adjacencyList_[adjacencyPointers_[i+1]-1]. Size is number of local vertices + 1
@@ -49,11 +47,6 @@ private:
     // Contains concatenated lists of adjacent vertices for each local vertex
     // Vertices are stored using global numbering
     IndexArray adjacencyList_;      
-    
-    // Array storing the partition assignment for each vertex
-    // vertexPartition_[i] contains the partition number (0 to numPartitions-1) that vertex i
-    // is assigned to after partitioning
-    IndexArray vertexPartition_;        
     
     // Local-to-global and global-to-local mappings
     CommunicationMap localToGlobalMap_;  // Maps local indices to global indices
@@ -82,14 +75,6 @@ private:
      * 1. Analyzes the adjacency graph to identify neighboring processes
      * 2. Determines which vertices need to be sent/received between processes
      * 3. Sets up the communication buffers and patterns for efficient data exchange
-     * 
-     * Key data structures initialized:
-     * - neighborProcesses_: Array storing the ranks of neighboring processes
-     * - sendCounts_: Number of vertices to send to each neighbor
-     * - receiveCounts_: Number of vertices to receive from each neighbor
-     * - sendOffsets_: Offset positions for sending data
-     * - receiveOffsets_: Offset positions for receiving data
-     * - sendIndices: Temporary vectors storing which local vertices to send
      */
     void setup_halo_communications() {
         // First, determine which processes own adjacent vertices
@@ -242,15 +227,15 @@ public:
     }
     
     /**
-     * Initialize the graph for partitioning
+     * Initialize the distributed array with graph connectivity information
      * 
      * @param vertexDistData Distribution of vertices among processors
      * @param adjacencyPtrData Adjacency structure indices
      * @param adjacencyListData Adjacent vertices
      */
-    void init_graph(idx_t* vertexDistData, size_t vertexDistSize,
-                   idx_t* adjacencyPtrData, size_t adjacencyPtrSize,
-                   idx_t* adjacencyListData, size_t adjacencyListSize) {
+    void init(idx_t* vertexDistData, size_t vertexDistSize,
+              idx_t* adjacencyPtrData, size_t adjacencyPtrSize,
+              idx_t* adjacencyListData, size_t adjacencyListSize) {
         // Allocate arrays
         vertexDistribution_ = IndexArray("vertexDistribution", vertexDistSize);
         adjacencyPointers_ = IndexArray("adjacencyPointers", adjacencyPtrSize);
@@ -270,9 +255,6 @@ public:
         }
         
         // Update device views
-        // The .template syntax is required when calling a template member function on a dependent type
-        // IndexArray::host_mirror_space is a dependent type since IndexArray is a template parameter
-        // modify() marks the host view as modified so the next sync will copy data to device
         vertexDistribution_.template modify<typename IndexArray::host_mirror_space>();
         vertexDistribution_.template sync<typename IndexArray::execution_space>();
         
@@ -288,89 +270,9 @@ public:
         
         // Initialize data array
         meshData_ = DCArrayKokkos<T, Layout, ExecSpace, MemoryTraits>(totalElementCount_);
-    }
-    
-    /**
-     * Partition the graph using ParMETIS
-     * 
-     * @param numPartitions Number of partitions
-     * @param partitioningMethod ParMETIS partitioning method
-     * @return Error code from ParMETIS
-     */
-    int partition(int numPartitions, int partitioningMethod = PARMETIS_PSR_UNCOUPLED) {
-        // Initialize partition array
-        vertexPartition_ = IndexArray("vertexPartition", localElementCount_);
         
-        // ParMETIS parameters
-        idx_t useWeights = 0;  // No weights
-        idx_t zeroBasedIndexing = 0;  // 0-based indexing
-        idx_t numConstraints = 1;     // Number of balancing constraints
-        real_t* targetPartitionWeights = new real_t[numConstraints * numPartitions];
-        real_t* imbalanceTolerance = new real_t[numConstraints];
-        idx_t parmetisOptions[METIS_NOPTIONS];
-        idx_t cutEdgeCount;
-        
-        // Set balanced partitioning
-        for (int i = 0; i < numConstraints * numPartitions; i++) {
-            targetPartitionWeights[i] = 1.0 / numPartitions;
-        }
-        
-        // Set maximum allowed imbalance
-        for (int i = 0; i < numConstraints; i++) {
-            imbalanceTolerance[i] = 1.05;  // 5% imbalance tolerance
-        }
-        
-        // Set default options
-        parmetisOptions[0] = 0;
-        
-        // Get number of vertices for this processor
-        idx_t localVertexCount = vertexDistribution_.h_view(processRank_ + 1) - vertexDistribution_.h_view(processRank_);
-        
-        // Call ParMETIS to partition the graph
-        int result;
-        if (partitioningMethod == PARMETIS_PSR_UNCOUPLED) {
-            result = ParMETIS_V3_PartKway(vertexDistribution_.h_view.data(), adjacencyPointers_.h_view.data(), adjacencyList_.h_view.data(),
-                                         NULL, NULL, &useWeights, &zeroBasedIndexing, &numConstraints, &numPartitions,
-                                         targetPartitionWeights, imbalanceTolerance, parmetisOptions, &cutEdgeCount, vertexPartition_.h_view.data(), &communicator_);
-        } else {
-            result = ParMETIS_V3_PartGeomKway(vertexDistribution_.h_view.data(), adjacencyPointers_.h_view.data(), adjacencyList_.h_view.data(),
-                                            NULL, NULL, &useWeights, &zeroBasedIndexing, &numConstraints, &numPartitions,
-                                            targetPartitionWeights, imbalanceTolerance, parmetisOptions, &cutEdgeCount, vertexPartition_.h_view.data(), &communicator_);
-        }
-        
-        if (result == METIS_OK) {
-            // Update device view
-            vertexPartition_.template modify<typename IndexArray::host_mirror_space>();
-            vertexPartition_.template sync<typename IndexArray::execution_space>();
-            
-            // Setup HALO communications
-            setup_halo_communications();
-            
-            // Print partition info on rank 0
-            if (processRank_ == 0) {
-                std::cout << "ParMETIS partitioning completed successfully!" << std::endl;
-                std::cout << "Edge-cut: " << cutEdgeCount << std::endl;
-            }
-        } else {
-            if (processRank_ == 0) {
-                std::cout << "ParMETIS partitioning failed with error code: " << result << std::endl;
-            }
-        }
-        
-        // Clean up
-        delete[] targetPartitionWeights;
-        delete[] imbalanceTolerance;
-        
-        return result;
-    }
-    
-    /**
-     * Get the partition vector
-     * 
-     * @return Partition vector
-     */
-    idx_t* get_partition() {
-        return vertexPartition_.h_view.data();
+        // Setup HALO communications
+        setup_halo_communications();
     }
     
     /**
@@ -561,16 +463,76 @@ int main(int argc, char *argv[]) {
             adjacencyPointers[i + 1] = adjacencyList.size();
         }
         
-        // Create DistributedDCArray object
+        // ========= ParMETIS Partitioning =========
+        // Now we call ParMETIS to partition our graph
+        
+        // Initialize partition array
+        std::vector<idx_t> vertexPartition(localVertexCount);
+        
+        // ParMETIS parameters
+        idx_t useWeights = 0;  // No weights
+        idx_t zeroBasedIndexing = 0;  // 0-based indexing
+        idx_t numConstraints = 1;     // Number of balancing constraints
+        real_t* targetPartitionWeights = new real_t[numConstraints * numPartitions];
+        real_t* imbalanceTolerance = new real_t[numConstraints];
+        idx_t parmetisOptions[METIS_NOPTIONS];
+        idx_t cutEdgeCount;
+        
+        // Set balanced partitioning
+        for (int i = 0; i < numConstraints * numPartitions; i++) {
+            targetPartitionWeights[i] = 1.0 / numPartitions;
+        }
+        
+        // Set maximum allowed imbalance
+        for (int i = 0; i < numConstraints; i++) {
+            imbalanceTolerance[i] = 1.05;  // 5% imbalance tolerance
+        }
+        
+        // Set default options
+        parmetisOptions[0] = 0;
+        
+        // Call ParMETIS to partition the graph
+        int result = ParMETIS_V3_PartKway(
+            vertexDistribution.data(), 
+            adjacencyPointers.data(), 
+            adjacencyList.data(),
+            NULL, NULL, &useWeights, &zeroBasedIndexing, 
+            &numConstraints, &numPartitions,
+            targetPartitionWeights, imbalanceTolerance, 
+            parmetisOptions, &cutEdgeCount, 
+            vertexPartition.data(), &MPI_COMM_WORLD
+        );
+        
+        if (result == METIS_OK) {
+            // Print partition info on rank 0
+            if (processRank == 0) {
+                std::cout << "ParMETIS partitioning completed successfully!" << std::endl;
+                std::cout << "Edge-cut: " << cutEdgeCount << std::endl;
+            }
+        } else {
+            if (processRank == 0) {
+                std::cout << "ParMETIS partitioning failed with error code: " << result << std::endl;
+            }
+            // Clean up and exit if partitioning failed
+            delete[] targetPartitionWeights;
+            delete[] imbalanceTolerance;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+        
+        // Clean up
+        delete[] targetPartitionWeights;
+        delete[] imbalanceTolerance;
+        
+        // ========= Creating distributed array with partitioned graph =========
+        // Now create our distributed array with the partitioned graph
         DistributedDCArray<double> mesh;
         
-        // Initialize the graph
-        mesh.init_graph(vertexDistribution.data(), vertexDistribution.size(),
-                       adjacencyPointers.data(), adjacencyPointers.size(),
-                       adjacencyList.data(), adjacencyList.size());
-        
-        // Partition the graph
-        mesh.partition(numPartitions);
+        // Initialize the array with the graph data
+        mesh.init(
+            vertexDistribution.data(), vertexDistribution.size(),
+            adjacencyPointers.data(), adjacencyPointers.size(),
+            adjacencyList.data(), adjacencyList.size()
+        );
         
         // Set values based on rank for demonstration
         mesh.set_values(static_cast<double>(processRank));
