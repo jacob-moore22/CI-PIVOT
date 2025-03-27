@@ -23,7 +23,7 @@ class DistributedDCArray {
 private:
     using DataArray = Kokkos::DualView<T*, Layout, ExecSpace, MemoryTraits>;
     using IndexArray = Kokkos::DualView<idx_t*, Layout, ExecSpace, MemoryTraits>;
-    using CommunicationMap = CArrayKokkos<int>;
+    using CommunicationMap = Kokkos::DualView<int*, Layout, ExecSpace, MemoryTraits>;
 
     // MPI related members
     int processRank_;
@@ -113,15 +113,15 @@ private:
         }
         
         // Setup neighbor arrays
-        neighborProcesses_ = CommunicationMap(neighborCount);
-        sendCounts_ = CommunicationMap(neighborCount);
-        receiveCounts_ = CommunicationMap(neighborCount);
-        sendOffsets_ = CommunicationMap(neighborCount);
-        receiveOffsets_ = CommunicationMap(neighborCount);
+        neighborProcesses_ = CommunicationMap("neighborProcesses", neighborCount);
+        sendCounts_ = CommunicationMap("sendCounts", neighborCount);
+        receiveCounts_ = CommunicationMap("receiveCounts", neighborCount);
+        sendOffsets_ = CommunicationMap("sendOffsets", neighborCount);
+        receiveOffsets_ = CommunicationMap("receiveOffsets", neighborCount);
         
         // Copy neighbors to Kokkos array
         for (int i = 0; i < neighborCount; i++) {
-            neighborProcesses_.host(i) = tempNeighbors[i];
+            neighborProcesses_.h_view(i) = tempNeighbors[i];
         }
         
         // For each neighbor, determine which vertices to send/receive
@@ -144,7 +144,7 @@ private:
                 // Find index of ownerProcess in neighbor list
                 int neighborIndex = -1;
                 for (int n = 0; n < neighborCount; n++) {
-                    if (neighborProcesses_.host(n) == ownerProcess) {
+                    if (neighborProcesses_.h_view(n) == ownerProcess) {
                         neighborIndex = n;
                         break;
                     }
@@ -160,50 +160,72 @@ private:
         
         // Set send counts and allocate send indices arrays
         for (int i = 0; i < neighborCount; i++) {
-            sendCounts_.host(i) = indicesToSendByNeighbor[i].size();
+            sendCounts_.h_view(i) = indicesToSendByNeighbor[i].size();
         }
         
+        // Sync to device
+        neighborProcesses_.template modify<typename CommunicationMap::host_mirror_space>();
+        neighborProcesses_.template sync<typename CommunicationMap::execution_space>();
+        
+        sendCounts_.template modify<typename CommunicationMap::host_mirror_space>();
+        sendCounts_.template sync<typename CommunicationMap::execution_space>();
+        
         // Communicate send counts to determine receive counts
-        receiveCounts_ = CommunicationMap(neighborCount);
+        receiveCounts_ = CommunicationMap("receiveCounts", neighborCount);
         
         for (int i = 0; i < neighborCount; i++) {
-            int destinationRank = neighborProcesses_.host(i);
-            int elementsToSend = sendCounts_.host(i);
+            int destinationRank = neighborProcesses_.h_view(i);
+            int elementsToSend = sendCounts_.h_view(i);
             int elementsToReceive;
             
             MPI_Sendrecv(&elementsToSend, 1, MPI_INT, destinationRank, 0,
                          &elementsToReceive, 1, MPI_INT, destinationRank, 0,
                          communicator_, MPI_STATUS_IGNORE);
             
-            receiveCounts_.host(i) = elementsToReceive;
+            receiveCounts_.h_view(i) = elementsToReceive;
         }
+        
+        receiveCounts_.template modify<typename CommunicationMap::host_mirror_space>();
+        receiveCounts_.template sync<typename CommunicationMap::execution_space>();
         
         // Calculate displacements
         int sendOffset = 0;
         int receiveOffset = 0;
         
         for (int i = 0; i < neighborCount; i++) {
-            sendOffsets_.host(i) = sendOffset;
-            sendOffset += sendCounts_.host(i);
+            sendOffsets_.h_view(i) = sendOffset;
+            sendOffset += sendCounts_.h_view(i);
             
-            receiveOffsets_.host(i) = receiveOffset;
-            receiveOffset += receiveCounts_.host(i);
+            receiveOffsets_.h_view(i) = receiveOffset;
+            receiveOffset += receiveCounts_.h_view(i);
         }
+        
+        sendOffsets_.template modify<typename CommunicationMap::host_mirror_space>();
+        sendOffsets_.template sync<typename CommunicationMap::execution_space>();
+        
+        receiveOffsets_.template modify<typename CommunicationMap::host_mirror_space>();
+        receiveOffsets_.template sync<typename CommunicationMap::execution_space>();
         
         // Allocate and set send indices
         int totalSendCount = sendOffset;
-        indicesToSend_ = CommunicationMap(totalSendCount);
+        indicesToSend_ = CommunicationMap("indicesToSend", totalSendCount);
         
         int idx = 0;
         for (int i = 0; i < neighborCount; i++) {
             for (size_t j = 0; j < indicesToSendByNeighbor[i].size(); j++) {
-                indicesToSend_.host(idx++) = indicesToSendByNeighbor[i][j];
+                indicesToSend_.h_view(idx++) = indicesToSendByNeighbor[i][j];
             }
         }
         
+        indicesToSend_.template modify<typename CommunicationMap::host_mirror_space>();
+        indicesToSend_.template sync<typename CommunicationMap::execution_space>();
+        
         // Allocate receive indices
         int totalReceiveCount = receiveOffset;
-        indicesToReceive_ = CommunicationMap(totalReceiveCount);
+        indicesToReceive_ = CommunicationMap("indicesToReceive", totalReceiveCount);
+        
+        indicesToReceive_.template modify<typename CommunicationMap::host_mirror_space>();
+        indicesToReceive_.template sync<typename CommunicationMap::execution_space>();
         
         // Update total count to include halo elements
         totalElementCount_ = localElementCount_ + totalReceiveCount;
@@ -295,12 +317,12 @@ public:
         // Allocate send and receive buffers
         int totalSendCount = 0;
         for (size_t i = 0; i < sendCounts_.extent(0); i++) {
-            totalSendCount += sendCounts_.host(i);
+            totalSendCount += sendCounts_.h_view(i);
         }
         
         int totalReceiveCount = 0;
         for (size_t i = 0; i < receiveCounts_.extent(0); i++) {
-            totalReceiveCount += receiveCounts_.host(i);
+            totalReceiveCount += receiveCounts_.h_view(i);
         }
         
         T* sendBuffer = new T[totalSendCount];
@@ -308,7 +330,7 @@ public:
         
         // Pack send buffer
         for (int i = 0; i < totalSendCount; i++) {
-            sendBuffer[i] = meshData_.host(indicesToSend_.host(i));
+            sendBuffer[i] = meshData_.h_view(indicesToSend_.h_view(i));
         }
         
         // Use point-to-point communication with adjacent ranks
@@ -319,9 +341,9 @@ public:
         
         // Post receives first (to avoid potential deadlock)
         for (int i = 0; i < neighborCount; i++) {
-            int neighborRank = neighborProcesses_.host(i);
-            int recvCount = receiveCounts_.host(i);
-            int recvOffset = receiveOffsets_.host(i);
+            int neighborRank = neighborProcesses_.h_view(i);
+            int recvCount = receiveCounts_.h_view(i);
+            int recvOffset = receiveOffsets_.h_view(i);
             
             if (recvCount > 0) {
                 MPI_Irecv(
@@ -340,9 +362,9 @@ public:
         
         // Post sends
         for (int i = 0; i < neighborCount; i++) {
-            int neighborRank = neighborProcesses_.host(i);
-            int sendCount = sendCounts_.host(i);
-            int sendOffset = sendOffsets_.host(i);
+            int neighborRank = neighborProcesses_.h_view(i);
+            int sendCount = sendCounts_.h_view(i);
+            int sendOffset = sendOffsets_.h_view(i);
             
             if (sendCount > 0) {
                 MPI_Isend(
@@ -365,7 +387,7 @@ public:
         // Unpack receive buffer
         for (int i = 0; i < totalReceiveCount; i++) {
             // Halo elements are stored after owned elements
-            meshData_.host(localElementCount_ + i) = receiveBuffer[i];
+            meshData_.h_view(localElementCount_ + i) = receiveBuffer[i];
         }
         
         // Wait for all sends to complete
@@ -379,7 +401,8 @@ public:
         delete[] statuses;
         
         // Update device view
-        meshData_.update_device();
+        meshData_.template modify<typename DataArray::host_mirror_space>();
+        meshData_.template sync<typename DataArray::execution_space>();
     }
     
     /**
