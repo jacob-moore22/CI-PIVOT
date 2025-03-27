@@ -311,10 +311,56 @@ public:
             sendBuffer[i] = meshData_.host(indicesToSend_.host(i));
         }
         
-        // Use MPI_Alltoallv to exchange data
-        MPI_Alltoallv(sendBuffer, sendCounts_.host.data(), sendOffsets_.host.data(), MPI_BYTE,
-                     receiveBuffer, receiveCounts_.host.data(), receiveOffsets_.host.data(), MPI_BYTE,
-                     communicator_);
+        // Use point-to-point communication with adjacent ranks
+        int neighborCount = neighborProcesses_.extent(0);
+        MPI_Request* sendRequests = new MPI_Request[neighborCount];
+        MPI_Request* recvRequests = new MPI_Request[neighborCount];
+        MPI_Status* statuses = new MPI_Status[neighborCount];
+        
+        // Post receives first (to avoid potential deadlock)
+        for (int i = 0; i < neighborCount; i++) {
+            int neighborRank = neighborProcesses_.host(i);
+            int recvCount = receiveCounts_.host(i);
+            int recvOffset = receiveOffsets_.host(i);
+            
+            if (recvCount > 0) {
+                MPI_Irecv(
+                    &receiveBuffer[recvOffset],
+                    recvCount * sizeof(T),
+                    MPI_BYTE,
+                    neighborRank,
+                    0,  // tag
+                    communicator_,
+                    &recvRequests[i]
+                );
+            } else {
+                recvRequests[i] = MPI_REQUEST_NULL;
+            }
+        }
+        
+        // Post sends
+        for (int i = 0; i < neighborCount; i++) {
+            int neighborRank = neighborProcesses_.host(i);
+            int sendCount = sendCounts_.host(i);
+            int sendOffset = sendOffsets_.host(i);
+            
+            if (sendCount > 0) {
+                MPI_Isend(
+                    &sendBuffer[sendOffset],
+                    sendCount * sizeof(T),
+                    MPI_BYTE,
+                    neighborRank,
+                    0,  // tag
+                    communicator_,
+                    &sendRequests[i]
+                );
+            } else {
+                sendRequests[i] = MPI_REQUEST_NULL;
+            }
+        }
+        
+        // Wait for all receives to complete
+        MPI_Waitall(neighborCount, recvRequests, statuses);
         
         // Unpack receive buffer
         for (int i = 0; i < totalReceiveCount; i++) {
@@ -322,9 +368,15 @@ public:
             meshData_.host(localElementCount_ + i) = receiveBuffer[i];
         }
         
+        // Wait for all sends to complete
+        MPI_Waitall(neighborCount, sendRequests, statuses);
+        
         // Clean up
         delete[] sendBuffer;
         delete[] receiveBuffer;
+        delete[] sendRequests;
+        delete[] recvRequests;
+        delete[] statuses;
         
         // Update device view
         meshData_.update_device();
